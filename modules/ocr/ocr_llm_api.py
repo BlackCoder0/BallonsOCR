@@ -186,9 +186,9 @@ class LLM_OCR(OCRBase):
             "value": "",
             "description": "Proxy address (e.g., http(s)://user:password@host:port or socks4/5://user:password@host:port)",
         },
-        "delay": {"value": 0.0, "description": "Delay in seconds between requests."},
+        "delay": {"value": 1.0, "description": "Delay in seconds between requests."},
         "requests_per_minute": {
-            "value": 0,
+            "value": 15,
             "description": "Maximum number of requests per minute (0 for no limit).",
         },
         "description": "OCR using various LLMs compatible with the OpenAI API.",
@@ -450,3 +450,9 @@ class LLM_OCR(OCRBase):
             "override_model",
         ]:
             self._initialize_client()
+
+        if param_key in ["requests_per_minute", "delay"]:
+            current_time = time.time()
+            self.request_count_minute = 0
+            self.minute_start_time = current_time
+            self.last_request_time = current_time
