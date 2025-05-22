@@ -210,7 +210,10 @@ def load_textstyle_from(p: str, raise_exception = False):
     text_styles.extend(styles_loaded)
     pcfg.text_styles_path = p
 
-def load_config():
+def load_config(config_path: str = shared.CONFIG_PATH):
+    if config_path != shared.CONFIG_PATH:
+        shared.CONFIG_PATH = config_path
+        LOGGER.info(f'Using specified config file at {shared.CONFIG_PATH}')
 
     if osp.exists(shared.CONFIG_PATH):
         try:

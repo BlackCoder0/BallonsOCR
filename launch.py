@@ -28,6 +28,7 @@ FONT_EXTS = {'.ttf','.otf','.ttc','.pfb'}
 
 IS_WIN7 = "Windows-7" in platform()
 
+import utils.shared as shared # Earlier import of shared to use default for config_path argument
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--reinstall-torch", action='store_true', help="launch.py argument: install the appropriate version of torch even if you have some version already installed")
@@ -45,6 +46,7 @@ parser.add_argument("--export-translation-txt", action='store_true', help='save 
 parser.add_argument("--export-source-txt", action='store_true', help='save source to txt file once RUN completed')
 parser.add_argument("--frozen", action='store_true', help='run without checking requirements')
 parser.add_argument("--update", action='store_true', help="Update the repository before launching") # Добавлен аргумент --update
+parser.add_argument("--config_path", default=shared.CONFIG_PATH, help='Config file to use for translation') # Named config_path to avoid conflict with existing name config
 args, _ = parser.parse_known_args()
 
 
@@ -164,7 +166,6 @@ def main():
 
 
     from utils.logger import setup_logging, logger as LOGGER
-    import utils.shared as shared
     from utils.io_utils import find_all_files_recursive
     from utils import config as program_config
 
@@ -173,7 +174,7 @@ def main():
     shared.DEFAULT_DISPLAY_LANG = QLocale.system().name().replace('en_CN', 'zh_CN')
     shared.HEADLESS = args.headless
     shared.load_cache()
-    program_config.load_config()
+    program_config.load_config(args.config_path)
     config = program_config.pcfg
 
     if args.headless:
