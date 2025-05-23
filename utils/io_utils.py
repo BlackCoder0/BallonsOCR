@@ -6,8 +6,10 @@ from typing import List, Dict, Callable, Union
 import base64
 import traceback
 
+from .logger import logger as LOGGER
 import requests
 from PIL import Image
+import PIL
 import cv2
 import numpy as np
 from natsort import natsorted
@@ -85,16 +87,31 @@ def find_all_files_recursive(tgt_dir: Union[List, str], ext: Union[List, set], e
     
     return filelst
 
-def imread(imgpath, read_type=cv2.IMREAD_COLOR):
+def imread(imgpath, read_type=cv2.IMREAD_COLOR, max_retry_limit=5, retry_interval=0.1):
     if not osp.exists(imgpath):
         return None
-    # img = cv2.imdecode(np.fromfile(imgpath, dtype=np.uint8), read_type)
-    img = np.array(Image.open(imgpath).convert('RGB'))
+    
+    num_tries = 0
+    while True:
+        try:
+            img = np.array(Image.open(imgpath).convert('RGB'))
+            break
+        except PIL.UnidentifiedImageError as e:
+            # IMG I/O thread might not finished yet
+            num_tries += 1
+            if max_retry_limit is not None and num_tries >= max_retry_limit:
+                LOGGER.exception(e)
+                return None
+            LOGGER.warning(f'PIL.UnidentifiedImageError: failed to read {imgpath}, retries: {num_tries} / {max_retry_limit}')
+            time.sleep(retry_interval)
+    
     if read_type == cv2.IMREAD_GRAYSCALE:
         img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
     return img
 
+
 def imwrite(img_path, img, ext='.png', quality=100):
+    # cv2 writing is faster than PIL
     suffix = Path(img_path).suffix
     ext = ext.lower()
     assert ext in IMG_EXT
@@ -102,10 +119,26 @@ def imwrite(img_path, img, ext='.png', quality=100):
         img_path = img_path.replace(suffix, ext)
     else:
         img_path += ext
-    params = {}
-    if ext in {'.jpg', '.jpeg', '.webp'}:
-        params = {'quality': quality}
-    Image.fromarray(img).save(img_path, **params)
+    encode_param = None
+    if ext in {'.jpg', '.jpeg'}:
+        encode_param = [cv2.IMWRITE_JPEG_QUALITY, quality]
+    elif ext == '.webp':
+        encode_param = [cv2.IMWRITE_WEBP_QUALITY, quality]
+    cv2.imencode(ext, img, encode_param)[1].tofile(img_path)
+
+
+# def imwrite(img_path, img, ext='.png', quality=100):
+#     suffix = Path(img_path).suffix
+#     ext = ext.lower()
+#     assert ext in IMG_EXT
+#     if suffix != '':
+#         img_path = img_path.replace(suffix, ext)
+#     else:
+#         img_path += ext
+#     params = {}
+#     if ext in {'.jpg', '.jpeg', '.webp'}:
+#         params = {'quality': quality}
+#     Image.fromarray(img).save(img_path, **params)
 
 def show_img_by_dict(imgdicts):
     for keyname in imgdicts.keys():
