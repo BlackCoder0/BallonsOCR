@@ -7,7 +7,7 @@ from msl.loadlib import Client64
 
 class MyClient(Client64):
     def __init__(self, engine_path, engine_type: Literal['J2K', 'K2J'], dat_path):
-        super(MyClient, self).__init__(module32=str(os.path.dirname(os.path.realpath(__file__))) + '\module_eztrans32.py',
+        super(MyClient, self).__init__(module32=str(os.path.dirname(os.path.realpath(__file__))) + '/module_eztrans32.py',
                                        engine_path=engine_path,
                                        engine_type=engine_type,
                                        dat_path=dat_path)

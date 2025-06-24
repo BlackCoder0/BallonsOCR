@@ -5,7 +5,6 @@ import os.path as osp
 import os
 import importlib
 import subprocess
-import pkg_resources
 from platform import platform
 
 BRANCH = 'dev'
@@ -289,6 +288,14 @@ def main():
     sys.exit(app.exec())
 
 def prepare_environment():
+
+    try:
+        import packaging
+    except ModuleNotFoundError:
+        run_pip(f"install packaging", "install packaging")
+
+    from utils.package import check_req_file, check_reqs
+
     if getattr(sys, 'frozen', False):
         print('Running as app, skip dependency installation')
         return
@@ -299,19 +306,15 @@ def prepare_environment():
     req_updated = False
     if sys.platform == 'win32':
         for req in REQ_WIN:
-            try:
-                pkg_resources.require(req)
-            except Exception:
+            if not check_reqs([req]):
                 run_pip(f"install {req}", req)
                 req_updated = True
-    torch_command = os.environ.get('TORCH_COMMAND', "pip install torch==2.2.2 torchvision==0.17.2 --index-url https://download.pytorch.org/whl/cu118 --disable-pip-version-check")
+    torch_command = os.environ.get('TORCH_COMMAND', "pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128 --disable-pip-version-check")
     if args.reinstall_torch or not is_installed("torch") or not is_installed("torchvision"):
         run(f'"{python}" -m {torch_command}', "Installing torch and torchvision", "Couldn't install torch", live=True)
         req_updated = True
-    try:
-        pkg_resources.require(open(args.requirements,mode='r', encoding='utf8'))
-    except Exception as e:
-        print(e)
+
+    if not check_req_file(args.requirements):
         run_pip(f"install -r {args.requirements}", "requirements")
         req_updated = True
 
