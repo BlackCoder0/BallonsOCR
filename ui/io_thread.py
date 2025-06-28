@@ -64,6 +64,20 @@ class ImgSaveThread(ThreadBase):
             self.img_writed.emit(pagename_in_proj)
             self.im_save_list.pop(0)
 
+    def on_exec_failed(self):
+        if len(self.im_save_list) > 0:
+            self.im_save_list.pop(0)
+            if len(self.im_save_list) == 0:
+                self.job = None
+            else:
+                try:
+                    self.job()
+                except Exception as e:
+                    self.on_exec_failed()
+                    create_error_dialog(e, self._thread_error_msg, self._thread_exception_type)
+
+
+
 
 class ImgTransProjFileIOThread(ThreadBase):
 

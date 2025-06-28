@@ -136,7 +136,7 @@ def main():
     APP_DIR = os.path.dirname(os.path.abspath(__file__))
     os.chdir(APP_DIR)
 
-    # prepare_environment()
+    prepare_environment()
 
     from utils.zluda_config import enable_zluda_config
     enable_zluda_config()
