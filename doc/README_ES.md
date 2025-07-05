@@ -3,7 +3,7 @@
 
 ## BallonTranslator
 
-[Chino](/README.md) | [Inglês](/README_EN.md) | [pt-BR](../doc/README_PT-BR.md) | [Ruso](../doc/README_RU.md) | [Japonés](../doc/README_JA.md) | [Indonesio](../doc/README_ID.md) | [Vietnamita](../doc/README_VI.md) | [Koreano](../doc/README_KO.md) | Español
+[Chino](/README.md) | [Inglês](/README_EN.md) | [pt-BR](../doc/README_PT-BR.md) | [Ruso](../doc/README_RU.md) | [Japonés](../doc/README_JA.md) | [Indonesio](../doc/README_ID.md) | [Vietnamita](../doc/README_VI.md) | [Koreano](../doc/README_KO.md) | Español | [Français](../doc/README_FR.md) 
 
 BallonTranslator es otra herramienta asistida por ordenador, basada en el aprendizaje profundo, para traducir cómics/manga.
 

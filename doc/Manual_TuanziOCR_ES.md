@@ -1,4 +1,4 @@
-[简体中文](../doc/团子OCR说明.md) | [pt-BR](/Manual_TuanziCR_pt_BR.md) | ESPAÑOL
+[简体中文](../doc/团子OCR说明.md) | [pt-BR](/Manual_TuanziCR_pt_BR.md) | Español | [Français](../doc/Manual_TuanziOCR_FR.md)
 
 ## Parámetros de solicitud Referencia (Oficial)
 

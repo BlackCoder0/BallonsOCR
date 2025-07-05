@@ -1,4 +1,4 @@
-[简体中文](../doc/团子OCR说明.md) | pt-BR
+[简体中文](../doc/团子OCR说明.md) | pt-BR | [Español](../doc/Manual_TuanziOCR_ES.md) | [Français](../doc/Manual_TuanziOCR_FR.md)
 
 ## Referência de Parâmetros de Solicitação (Oficial)
 

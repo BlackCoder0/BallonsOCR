@@ -81,7 +81,8 @@ DISPLAY_LANGUAGE_MAP = {
     "Português (Brasil)": "pt_BR",
     "한국어": "ko_KR",
     "Español": "es_MX",
-    "Hungarian": "hu_HU"
+    "Hungarian": "hu_HU",
+    "Français": "fr_FR"
 }
 VALID_LANG_SET = set(list(DISPLAY_LANGUAGE_MAP.values()))
 

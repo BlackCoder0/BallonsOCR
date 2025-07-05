@@ -2,7 +2,7 @@
 > **번역 결과물을 공개적으로 공유할 때 숙련된 번역가가 번역이나 교정에 참여하지 않았다면, 기계 번역임을 잘 보이는 곳에 표시해 주세요.**
 
 # BallonTranslator
-[简体中文](/README.md) | [English](/README_EN.md) | [pt-BR](../doc/README_PT-BR.md) | [Русский](../doc/README_RU.md) | [日本語](../doc/README_JA.md) | [Indonesia](../doc/README_ID.md) | [Tiếng Việt](../doc/README_VI.md) | 한국어
+[简体中文](/README.md) | [English](/README_EN.md) | [pt-BR](../doc/README_PT-BR.md) | [Русский](../doc/README_RU.md) | [日本語](../doc/README_JA.md) | [Indonesia](../doc/README_ID.md) | [Tiếng Việt](../doc/README_VI.md) | 한국어 | [Español](../doc/README_ES.md) | [Français](../doc/README_FR.md)
 
 딥러닝으로 구동되는 또 다른 컴퓨터 지원 만화/만화 번역 툴.
 

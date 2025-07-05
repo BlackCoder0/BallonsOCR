@@ -1,6 +1,6 @@
 ## BallonTranslator
 
-[Chinês](/README.md) | [Inglês](/README_EN.md) | pt-BR | [Russo](../doc/README_RU.md) | [Japonês](../doc/README_JA.md) | [Indonésio](../doc/README_ID.md) | [Vietnamita](../doc/README_VI.md) | [한국어](../doc/README_KO.md)
+[Chinês](/README.md) | [Inglês](/README_EN.md) | pt-BR | [Russo](../doc/README_RU.md) | [Japonês](../doc/README_JA.md) | [Indonésio](../doc/README_ID.md) | [Vietnamita](../doc/README_VI.md) | [한국어](../doc/README_KO.md) | [Español](../doc/README_ES.md) | [Français](../doc/README_FR.md)
 
 BallonTranslator é mais uma ferramenta auxiliada por computador, alimentada por deep learning, para a tradução de quadrinhos/mangás.
 

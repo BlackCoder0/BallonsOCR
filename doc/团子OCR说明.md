@@ -1,4 +1,4 @@
-简体中文 | [pt_BR](../doc/Manual_TuanziOCR_pt-BR.md)
+简体中文 | [pt_BR](../doc/Manual_TuanziOCR_pt-BR.md) | [Español](../doc/Manual_TuanziOCR_ES.md) | [Français](../doc/Manual_TuanziOCR_FR.md)
 
 ## 官方提供的请求参数参考：
 <p align = "center">

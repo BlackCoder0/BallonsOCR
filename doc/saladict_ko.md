@@ -1,4 +1,4 @@
-[简体中文](../doc/saladict_chs.md) | [English](../doc/saladict.md) | [pt-BR](../doc/saladict_pt-br.md) | 한국어
+[简体中文](../doc/saladict_chs.md) | [English](../doc/saladict.md) | [pt-BR](../doc/saladict_pt-br.md) | 한국어 | [Español](../doc/saladict_es.md) | [Français](../doc/saladict_fr.md)
 
 확장에 대한 전역 단축키를 제공하는 브라우저에서만 작동합니다(현재 Firefox만 전역 단축키를 지원하지 않습니다)
 
