@@ -239,8 +239,11 @@ Ce projet dépend fortement de [manga-image-translator](https://github.com/zyddn
   * Tous les lama* sont affinés à l'aide de [LaMa](https://github.com/advimman/lama)
   * PatchMatch est un algorithme issu de [PyPatchMatch](https://github.com/vacancy/PyPatchMatch), ce programme utilise une [version modifiée](https://github.com/dmMaze/PyPatchMatchInpaint)
   
-## Translators
-* **Vous trouverez des informations sur les modules Traducteurs [ici](../doc/modules/translators.md).**
+## Traducteurs
+
+Traducteurs disponibles : Google, DeepL, ChatGPT, Sugoi, Caiyun, Baidu, Papago et Yandex.
+
+* Vous trouverez des informations sur les modules Traducteurs [ici](../doc/modules/translators.md). *(Anglais)*
 
 ## FAQ & Divers
 * Si vous avez une carte Nvidia ou une puce Apple, l’accélération matérielle sera activée.

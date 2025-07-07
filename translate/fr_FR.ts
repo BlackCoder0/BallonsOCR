@@ -1408,7 +1408,7 @@ Tous les résultats de traduction existants seront effacés !</translation>
     <message>
         <location filename="../ui/mainwindowbars.py" line="571" />
         <source>Target</source>
-        <translation>Objectif</translation>
+        <translation>Cible</translation>
     </message>
 </context>
 </TS>
