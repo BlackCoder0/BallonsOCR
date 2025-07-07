@@ -8,7 +8,7 @@ from qtpy.QtGui import QMouseEvent, QKeySequence, QActionGroup, QIcon
 from modules.translators import BaseTranslator
 from .custom_widget import Widget, PaintQSlider, SmallComboBox, ConfigClickableLabel
 from utils.shared import TITLEBAR_HEIGHT, WINDOW_BORDER_WIDTH, BOTTOMBAR_HEIGHT, LEFTBAR_WIDTH, LEFTBTN_WIDTH
-from .framelesswindow import startSystemMove
+from .framelesswindow import FramelessMoveResize
 from utils.config import pcfg
 from utils import shared as C
 if C.FLAG_QT6:
@@ -273,9 +273,8 @@ class TitleBar(Widget):
 
     def __init__(self, parent, *args, **kwargs) -> None:
         super().__init__(parent, *args, **kwargs)
-        if C.ON_MACOS:# https://bugreports.qt.io/browse/QTBUG-133215
-            self.setAttribute(Qt.WidgetAttribute.WA_ContentsMarginsRespectsSafeArea, False)
         self.mainwindow : QMainWindow = parent
+        self.mainwindow.installEventFilter(self)
         self.mPos: QPoint = None
         self.normalsize = False
         self.proj_name = ''
@@ -400,7 +399,7 @@ class TitleBar(Widget):
         if not C.ON_MACOS:
             self.iconLabel.setFixedWidth(LEFTBAR_WIDTH - 12)
         else:
-            self.iconLabel.setFixedWidth(LEFTBAR_WIDTH)
+            self.iconLabel.setFixedWidth(LEFTBAR_WIDTH + 8)
 
         self.titleLabel = QLabel('BallonTranslator')
         self.titleLabel.setObjectName('TitleLabel')
@@ -416,6 +415,7 @@ class TitleBar(Widget):
         hlayout.addStretch()
         hlayout.addWidget(self.titleLabel)
         hlayout.addStretch()
+        hlayout.setContentsMargins(0, 0, 0, 0)
 
         if not C.ON_MACOS:
             self.minBtn = QPushButton()
@@ -431,8 +431,16 @@ class TitleBar(Widget):
             hlayout.addWidget(self.minBtn)
             hlayout.addWidget(self.maxBtn)
             hlayout.addWidget(self.closeBtn)
-        hlayout.setContentsMargins(0, 0, 0, 0)
-        hlayout.setSpacing(0)
+            hlayout.setContentsMargins(0, 0, 0, 0)
+            hlayout.setSpacing(0)
+
+    def eventFilter(self, obj, e):
+        if obj == self.mainwindow:
+            if e.type() == QEvent.Type.WindowStateChange and not C.ON_MACOS:
+                self.maxBtn.setChecked(self.mainwindow.isMaximized())
+                return False
+
+        return super().eventFilter(obj, e)
 
     def stageEnableStateChanged(self):
         sender = self.sender()
@@ -440,11 +448,12 @@ class TitleBar(Widget):
         checked = sender.isChecked()
         self.enable_module.emit(idx, checked)
 
+    def mouseDoubleClickEvent(self, e: QMouseEvent) -> None:
+        super().mouseDoubleClickEvent(e)
+        FramelessMoveResize.toggleMaxState(self.mainwindow)
+
     def onMaxBtnClicked(self):
-        if self.mainwindow.isMaximized():
-            self.mainwindow.showNormal()
-        else:
-            self.mainwindow.showMaximized()
+        FramelessMoveResize.toggleMaxState(self.mainwindow)
 
     def onMinBtnClicked(self):
         self.mainwindow.showMinimized()
@@ -478,7 +487,7 @@ class TitleBar(Widget):
                 g_pos = event.globalPosition().toPoint()
             else:
                 g_pos = event.globalPos()
-            startSystemMove(self.window(), g_pos)
+            FramelessMoveResize.startSystemMove(self.window(), g_pos)
 
     def hideEvent(self, e) -> None:
         self.mPos = None
