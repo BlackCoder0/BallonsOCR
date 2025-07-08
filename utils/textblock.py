@@ -791,7 +791,7 @@ def group_output(blks, lines, im_w, im_h, mask=None, sort_blklist=True, canvas=N
     final_blk_list = _final_blk_list
 
     # step3: merge scattered lines, sort textblocks by "grid"
-    scattered_lines['ver'].sort(key=lambda blk: blk.center()[0])
+    scattered_lines['ver'].sort(key=lambda blk: blk.center()[0], reverse=True)
     scattered_lines['hor'].sort(key=lambda blk: blk.center()[1])
     # c = visualize_textblocks(canvas, scattered_lines['hor'])
     # cv2.imwrite('local_tst.jpg', c)
