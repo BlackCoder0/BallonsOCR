@@ -206,6 +206,7 @@ def model2annotations(model_path, img_dir_list, save_dir, save_json=False):
 def preprocess_img(img, detect_size=(1024, 1024), device='cpu', bgr2rgb=True, half=False, to_tensor=True):
     if isinstance(detect_size, int):
         detect_size = (detect_size, detect_size)
+    
     if bgr2rgb:
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img_in, ratio, (dw, dh) = letterbox(img, new_shape=detect_size, auto=False, stride=64)

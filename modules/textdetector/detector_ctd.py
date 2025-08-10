@@ -20,7 +20,7 @@ class ComicTextDetector(TextDetectorBase):
         'detect_size': {
             'type': 'selector',
             'options': [896, 1024, 1152, 1280], 
-            'value': 1024
+            'value': 1280
         }, 
         'det_rearrange_max_batches': {
             'type': 'selector',

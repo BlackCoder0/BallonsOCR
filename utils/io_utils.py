@@ -96,9 +96,18 @@ def imread(imgpath, read_type=cv2.IMREAD_COLOR, max_retry_limit=5, retry_interva
     while True:
         try:
             img = Image.open(imgpath)
-            if read_type != cv2.IMREAD_GRAYSCALE:
-                img = img.convert('RGB')
+            if read_type == cv2.IMREAD_GRAYSCALE:
+                img = img.convert('L')
             img = np.array(img)
+            if read_type != cv2.IMREAD_GRAYSCALE:
+                if img.ndim == 3 and img.shape[-1] == 1:
+                    img = img[..., :2]
+                if img.ndim == 2:
+                    img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+
+            if img.ndim == 3 and img.shape[-1] == 4:
+                if np.all(img[..., -1] == 255):
+                    img = np.ascontiguousarray(img[..., :3])
             break
         except PIL.UnidentifiedImageError as e:
             # IMG I/O thread might not finished yet
@@ -109,16 +118,6 @@ def imread(imgpath, read_type=cv2.IMREAD_COLOR, max_retry_limit=5, retry_interva
             LOGGER.warning(f'PIL.UnidentifiedImageError: failed to read {imgpath}, retries: {num_tries} / {max_retry_limit}')
             time.sleep(retry_interval)
     
-    if read_type == cv2.IMREAD_GRAYSCALE:
-        if img.ndim == 3:
-            if img.shape[-1] == 3:
-                img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-            elif img.shape[-1] == 4:
-                img = cv2.cvtColor(img, cv2.COLOR_RGBA2GRAY)
-            elif img.shape[-1] == 1:
-                img = img[..., 0]
-            else:
-                raise
     return img
 
 
@@ -131,6 +130,12 @@ def imwrite(img_path, img, ext='.png', quality=100, jxl_encode_effort=3):
         img_path = img_path.replace(suffix, ext)
     else:
         img_path += ext
+    
+    # Ensure directory exists
+    save_dir = osp.dirname(img_path)
+    if save_dir and not osp.exists(save_dir):
+        os.makedirs(save_dir)
+    
     encode_param = None
     if ext in {'.jpg', '.jpeg'}:
         encode_param = [cv2.IMWRITE_JPEG_QUALITY, quality]
@@ -141,6 +146,7 @@ def imwrite(img_path, img, ext='.png', quality=100, jxl_encode_effort=3):
         # higher values theoretically produce smaller files at the expense of time, 3 seems to strike a balance
         lossless = quality > 99 # quality=100, lossless=False seems to result in larger file compared with lossless=True
         Image.fromarray(img).save(img_path, quality=quality, lossless=lossless, effort=jxl_encode_effort)
+        return
     else:
         if len(img.shape) == 3:
             if img.shape[-1] == 3:

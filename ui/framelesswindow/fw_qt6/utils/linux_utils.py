@@ -1,5 +1,6 @@
 # coding: utf-8
 
+from utils import shared
 
 class LinuxMoveResize:
     """ Tool class for moving and resizing window """
@@ -25,3 +26,12 @@ class LinuxMoveResize:
             window edges
         """
         window.windowHandle().startSystemResize(edges)
+
+    @classmethod
+    def toggleMaxState(cls, window):
+        if shared.HEADLESS:
+            return
+        if window.isMaximized():
+            window.showNormal()
+        else:
+            window.showMaximized()

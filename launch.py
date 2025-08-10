@@ -215,9 +215,9 @@ def main():
 
     # import msl.loadlib (required by translators/trans_eztrans) before init QApplication
     # yield QWindowsContext: OleInitialize() failed on py3.10, 
-    from modules.base import load_modules
+    from modules.base import init_module_registries
     from modules.prepare_local_files import prepare_local_files_forall
-    load_modules()
+    init_module_registries()
     prepare_local_files_forall()
 
     if not args.headless:
@@ -289,6 +289,20 @@ def main():
         ballontrans.resetStyleSheet()
     sys.exit(app.exec())
 
+def is_amd_gpu():
+    try:
+        if sys.platform == 'win32':
+            # Windows: use wmic
+            cmd = 'wmic path win32_VideoController get name'
+            output = subprocess.check_output(cmd, shell=True, text=True, stderr=subprocess.DEVNULL)
+            return any(keyword in output for keyword in ["AMD", "Radeon"])
+
+        else:
+            return False
+
+    except Exception:
+        return False
+
 def prepare_environment():
 
     try:
@@ -311,7 +325,13 @@ def prepare_environment():
             if not check_reqs([req]):
                 run_pip(f"install {req}", req)
                 req_updated = True
-    torch_command = os.environ.get('TORCH_COMMAND', "pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128 --disable-pip-version-check")
+
+    if is_amd_gpu():
+        # AMD GPU: Cuda 11.8, Pytorch 2.2.2
+        print('AMD GPU: Yes')
+        torch_command = os.environ.get('TORCH_COMMAND', "pip install torch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2 --index-url https://download.pytorch.org/whl/cu118 --disable-pip-version-check")
+    else:
+        torch_command = os.environ.get('TORCH_COMMAND', "pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128 --disable-pip-version-check")
     if args.reinstall_torch or not is_installed("torch") or not is_installed("torchvision"):
         run(f'"{python}" -m {torch_command}', "Installing torch and torchvision", "Couldn't install torch", live=True)
         req_updated = True

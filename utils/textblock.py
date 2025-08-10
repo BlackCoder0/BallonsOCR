@@ -625,6 +625,8 @@ def try_merge_textline(blk: TextBlock, blk2: TextBlock, fntsize_tol=1.7, distanc
     distance_y = max(xyxy1[1], xyxy2[1]) - min(xyxy1[3], xyxy2[3])
     w1 = xyxy1[2] - xyxy1[0]
     w2 = xyxy2[2] - xyxy2[0]
+    h1 = xyxy1[3] - xyxy1[1]
+    h2 = xyxy2[3] - xyxy2[1] 
 
     l1, l2 = Polygon(blk.lines[-1]), Polygon(blk2.lines[0])
     if not l1.intersects(l2):
@@ -632,6 +634,8 @@ def try_merge_textline(blk: TextBlock, blk2: TextBlock, fntsize_tol=1.7, distanc
             if distance_y > 0:
                 return False
             if distance_x > fntsz_avg * 0.8:
+                return False
+            if abs(distance_y) / min(h1, h2) < 0.4:
                 return False
         else:
             if distance_x > 0:
@@ -787,7 +791,7 @@ def group_output(blks, lines, im_w, im_h, mask=None, sort_blklist=True, canvas=N
     final_blk_list = _final_blk_list
 
     # step3: merge scattered lines, sort textblocks by "grid"
-    scattered_lines['ver'].sort(key=lambda blk: blk.center()[0])
+    scattered_lines['ver'].sort(key=lambda blk: blk.center()[0], reverse=True)
     scattered_lines['hor'].sort(key=lambda blk: blk.center()[1])
     # c = visualize_textblocks(canvas, scattered_lines['hor'])
     # cv2.imwrite('local_tst.jpg', c)

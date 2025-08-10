@@ -302,15 +302,16 @@ def sort_pnts(pts: np.ndarray):
     assert isinstance(pts, np.ndarray) and pts.shape == (4, 2)
     pairwise_vec = (pts[:, None] - pts[None]).reshape((16, -1))
     pairwise_vec_norm = np.linalg.norm(pairwise_vec, axis=1)
-    long_side_ids = np.argsort(pairwise_vec_norm)[[8, 10]]
-    pairwise_vec_norm_sorted = pairwise_vec_norm[long_side_ids]
+    vec_norm_sort_ids = np.argsort(pairwise_vec_norm)
+    long_side_ids = vec_norm_sort_ids[[8, 10]]
+    pairwise_vec_norm_sorted = pairwise_vec_norm[vec_norm_sort_ids]
     long_side_vecs = pairwise_vec[long_side_ids]
     inner_prod = (long_side_vecs[0] * long_side_vecs[1]).sum()
     if inner_prod < 0:
         long_side_vecs[0] = -long_side_vecs[0]
     struc_vec = np.abs(long_side_vecs.mean(axis=0))
     is_vertical = struc_vec[0] * 1.2 <= struc_vec[1]
-    if len(set(pairwise_vec_norm_sorted[4: 12])) == 0:  # is square
+    if len(set(pairwise_vec_norm_sorted[4: 12])) == 1:  # is square
         is_vertical = False
 
     if is_vertical:

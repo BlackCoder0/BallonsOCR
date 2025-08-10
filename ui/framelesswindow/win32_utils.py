@@ -18,6 +18,8 @@ from qtpy import API
 USE_PYSIDE6 = API == 'pyside6'
 QT_VERSION = tuple(int(v) for v in qVersion().split('.'))
 
+from utils import shared
+
 
 def getSystemAccentColor():
     """ get the accent color of system
@@ -397,6 +399,8 @@ class WindowsMoveResize:
 
     @classmethod
     def toggleMaxState(cls, window):
+        if shared.HEADLESS:
+            return
         if QT_VERSION < (6, 8, 0):
             if window.isMaximized():
                 window.showNormal()

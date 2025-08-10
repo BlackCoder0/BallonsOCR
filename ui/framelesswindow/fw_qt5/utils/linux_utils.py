@@ -9,6 +9,7 @@ from xcffib.xproto import (ButtonIndex, ButtonMask, ButtonReleaseEvent,
                            ClientMessageData, ClientMessageEvent, EventMask,
                            xprotoExtension)
 
+from utils import shared
 
 class WindowMessage(Enum):
     """ Window message enum class """
@@ -155,3 +156,12 @@ class LinuxMoveResize:
             Qt.RightEdge: WindowMessage._NET_WM_MOVERESIZE_SIZE_RIGHT,
         }
         cls.startSystemMoveResize(window, globalPos, messageMap[edges].value)
+
+    @classmethod
+    def toggleMaxState(cls, window):
+        if shared.HEADLESS:
+            return
+        if window.isMaximized():
+            window.showNormal()
+        else:
+            window.showMaximized()

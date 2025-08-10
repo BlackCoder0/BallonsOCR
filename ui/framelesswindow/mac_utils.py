@@ -11,6 +11,7 @@ from Quartz.CoreGraphics import (CGEventCreateMouseEvent,
 
 QT_VERSION = tuple(int(v) for v in qVersion().split('.'))
 
+from utils import shared
 
 class MacMoveResize:
     """ Tool class for moving and resizing Mac OS window """
@@ -62,6 +63,8 @@ class MacMoveResize:
 
     @classmethod
     def toggleMaxState(cls, window):
+        if shared.HEADLESS:
+            return
         if window.isMaximized():
             window.showNormal()
         else:

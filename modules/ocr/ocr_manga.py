@@ -75,7 +75,9 @@ class MangaOCR(OCRBase):
             x1, y1, x2, y2 = blk.xyxy
             if y2 < im_h and x2 < im_w and \
                 x1 > 0 and y1 > 0 and x1 < x2 and y1 < y2: 
-                blk.text = self.model(img[y1:y2, x1:x2])
+                # Extract region and convert RGBA to RGB if necessary for model input
+                region = img[y1:y2, x1:x2]
+                blk.text = self.model(region)
             else:
                 self.logger.warning('invalid textbbox to target img')
                 blk.text = ['']

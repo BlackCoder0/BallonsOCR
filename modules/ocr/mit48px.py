@@ -150,7 +150,9 @@ class Model48pxOCR:
             region = np.zeros((N, self.text_height, max_width, 3), dtype = np.uint8)
             for i, idx in enumerate(indices):
                 W = regions[idx].shape[1]
-                region[i, :, : W, :]=regions[idx]
+                # Convert RGBA to RGB if necessary for model input
+                region_data = regions[idx]
+                region[i, :, : W, :]=region_data
 
             image_tensor = (torch.from_numpy(region).float() - 127.5) / 127.5
             image_tensor = einops.rearrange(image_tensor, 'N H W C -> N C H W')
