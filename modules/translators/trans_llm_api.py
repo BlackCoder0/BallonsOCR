@@ -360,9 +360,21 @@ class LLM_API_Translator(BaseTranslator):
             raise
 
         if completion.choices and completion.choices[0].message and completion.choices[0].message.content:
+            raw_content = completion.choices[0].message.content
+            json_to_parse = raw_content.strip()
+
+            match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", json_to_parse, re.DOTALL)
+            if match:
+                self.logger.debug("Markdown code block detected. Extracting JSON content.")
+                json_to_parse = match.group(1)
+            else:
+                start = json_to_parse.find('{')
+                end = json_to_parse.rfind('}')
+                if start != -1 and end != -1 and end > start:
+                    json_to_parse = json_to_parse[start:end+1]
+
             try:
-                raw_content = completion.choices[0].message.content
-                data_to_validate = json.loads(raw_content)
+                data_to_validate = json.loads(json_to_parse)
                 
                 if self.provider == "Google" and isinstance(data_to_validate, list):
                     self.logger.debug("Google API returned a list, wrapping it in {'translations': ...} for validation.")
@@ -433,8 +445,8 @@ class LLM_API_Translator(BaseTranslator):
 
     def updateParam(self, param_key: str, param_content):
         super().updateParam(param_key, param_content)
-        self.logger.debug(f"Parameter '{param_key}' updated.")
+        # self.logger.debug(f"Parameter '{param_key}' updated.")
         
         if param_key in ["proxy", "multiple_keys", "apikey", "provider", "endpoint"]:
-            self.logger.info(f"Client will be re-initialized on next request due to change in '{param_key}'.")
+        #   self.logger.info(f"Client will be re-initialized on next request due to change in '{param_key}'.")
             self.client = None
