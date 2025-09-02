@@ -206,11 +206,9 @@ class LLM_OCR(OCRBase):
         self.minute_start_time = time.time()
 
     def _initialize_client(self):
-        # Configure proxies using mounts
         transport = None
         if self.proxy:
             try:
-                # Проверка, что прокси не пустая строка
                 if self.debug_mode:
                     self.logger.info(f"Using proxy: {self.proxy}")
                 proxy_mounts = {
