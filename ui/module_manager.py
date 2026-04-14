@@ -658,6 +658,9 @@ class ModuleManager(QObject):
         translator_panel.addModulesParamWidgets(translator_params)
         translator_panel.translator_changed.connect(self.setTranslator)
         translator_panel.paramwidget_edited.connect(self.on_translatorparam_edited)
+        translator_panel.translateByTextblockBox.checker_changed.connect(self.on_translatebyblock_checker_changed)
+        translator_panel.translateByTextblockBox.checker.setChecked(cfg_module.translate_by_textblock)
+
         from modules.translators.hooks import chs2cht
         BaseTranslator.register_preprocess_hooks({'keyword_sub': translate_preprocess})
         BaseTranslator.register_postprocess_hooks({'chs2cht': chs2cht, 'keyword_sub': translate_postprocess})
@@ -976,3 +979,7 @@ class ModuleManager(QObject):
     def on_inpainter_checker_changed(self, is_checked: bool):
         cfg_module.check_need_inpaint = is_checked
         InpainterBase.check_need_inpaint = is_checked
+
+    def on_translatebyblock_checker_changed(self, is_checked: bool):
+        cfg_module.translate_by_textblock = is_checked
+        BaseTranslator.translate_by_textblock = is_checked
