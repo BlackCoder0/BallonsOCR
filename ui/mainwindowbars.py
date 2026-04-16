@@ -23,6 +23,13 @@ class OpenBtn(QToolButton):
     ...
 
 
+class RunChecker(QCheckBox):
+
+    def nextCheckState(self) -> None:
+        # Keep this control action-like instead of latching checked state.
+        return
+
+
 class StatusButton(QPushButton):
     pass
 
@@ -118,15 +125,12 @@ class LeftBar(Widget):
         openBtnToolBar.setFixedSize(LEFTBTN_WIDTH, LEFTBTN_WIDTH)
         openBtnToolBar.addWidget(self.openBtn)
         
-        self.runImgtransBtn = QPushButton()
+        self.runImgtransBtn = RunChecker()
         self.runImgtransBtn.setObjectName('RunButton')
-        self.runImgtransBtn.setText(self.tr('Extract'))
-        font = self.runImgtransBtn.font()
-        font.setPixelSize(10)
-        self.runImgtransBtn.setFont(font)
+        self.runImgtransBtn.setToolTip(self.tr('Extract'))
+        self.runImgtransBtn.setStatusTip(self.tr('Extract'))
         self.runImgtransBtn.setFixedSize(LEFTBTN_WIDTH, LEFTBTN_WIDTH)
         self.run_imgtrans_clicked = self.runImgtransBtn.clicked
-        self.runImgtransBtn.setFixedSize(LEFTBTN_WIDTH, LEFTBTN_WIDTH)
         
         vlayout = QVBoxLayout(self)
         vlayout.addWidget(openBtnToolBar)

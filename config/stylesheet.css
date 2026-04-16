@@ -373,8 +373,20 @@ QPushButton {
     border-radius: 4px;
 }
 
-QPushButton#RunButton {
-    font-size: 12px;
+QCheckBox#RunButton::indicator{
+    height: 27px;
+    width: 27px;
+    image: url(icons/leftbar_run.svg);
+}
+
+QCheckBox#RunButton::indicator:hover
+{
+    image: url(icons/leftbar_run_activate.svg);
+}
+
+QCheckBox#RunButton::indicator:pressed
+{
+    image: url(icons/leftbar_run_activate.svg);
 }
 
 NoBorderPushBtn {
