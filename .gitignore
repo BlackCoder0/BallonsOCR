@@ -63,3 +63,4 @@ download_models.bat
 Ultralytics/settings.json
 BALLONSOCR_PUBLISHING_GUIDE.md
 scripts/setup_ballonsocr_remote.py
+scripts/release
