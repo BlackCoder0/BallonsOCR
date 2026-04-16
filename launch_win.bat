@@ -1,4 +1,4 @@
-@REM dependencies\libraries\py310\python.exe F:\repos\BallonsTranslator\ballontranslator
+@REM dependencies\libraries\py310\python.exe F:\repos\BallonsOCR
 @REM @echo %PATH%
 
 cd %~dp0

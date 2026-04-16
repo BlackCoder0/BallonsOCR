@@ -462,7 +462,7 @@ class GlobalRepalceAllCommand(QUndoCommand):
 
         for trans_dict in self.btrans_list:
             blk: TextBlock = self.proj.pages[trans_dict['pagename']][trans_dict['idx']]
-            blk.translation = trans_dict['replace']
+            blk.render_text = trans_dict['replace']
             blk.rich_text = trans_dict['replace_html']
 
         for src_dict in self.bsrc_list:
@@ -482,7 +482,7 @@ class GlobalRepalceAllCommand(QUndoCommand):
 
         for trans_dict in self.btrans_list:
             blk: TextBlock = self.proj.pages[trans_dict['pagename']][trans_dict['idx']]
-            blk.translation = trans_dict['ori']
+            blk.render_text = trans_dict['ori']
             blk.rich_text = trans_dict['ori_html']
 
         for src_dict in self.src_list:

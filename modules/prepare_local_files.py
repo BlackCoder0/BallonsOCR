@@ -2,18 +2,16 @@ from typing import Union, List
 import os.path as osp
 import os
 
-from . import INPAINTERS, TEXTDETECTORS, OCR, TRANSLATORS
+from . import TEXTDETECTORS, OCR
 from .base import BaseModule, LOGGER
 import utils.shared as shared
+from utils.config import pcfg
 from utils.download_util import download_and_check_files
 
 
 def download_and_check_module_files(module_class_list: List[BaseModule] = None):
     if module_class_list is None:
-        module_class_list = []
-        for registered in [INPAINTERS, TEXTDETECTORS, OCR, TRANSLATORS]:
-            for module_key in registered.module_dict.keys():
-                module_class_list.append(registered.get(module_key))
+        module_class_list = get_required_module_classes()
 
     for module_class in module_class_list:
         if module_class.download_file_on_load or module_class.download_file_list is None:
@@ -63,12 +61,45 @@ def prepare_pkuseg():
         os.makedirs(p)
 
 
+def _get_param_value(params: dict, key: str):
+    if not params or key not in params:
+        return None
+    value = params[key]
+    if isinstance(value, dict) and 'value' in value:
+        return value['value']
+    return value
+
+
+def get_required_module_classes() -> List[BaseModule]:
+    module_class_list: List[BaseModule] = []
+    seen = set()
+
+    def add_module(registry, module_name: str):
+        if not module_name or module_name in seen:
+            return
+        if module_name not in registry.module_dict:
+            LOGGER.warning(f'Skip unavailable module dependency: {module_name}')
+            return
+        seen.add(module_name)
+        module_class_list.append(registry.get(module_name))
+
+    add_module(TEXTDETECTORS, pcfg.module.textdetector)
+    add_module(OCR, pcfg.module.ocr)
+
+    selected_ocr_params = pcfg.module.ocr_params.get(pcfg.module.ocr, {})
+    for param_key in ('vertical_ocr', 'horizontal_ocr', 'fallback_ocr'):
+        module_name = _get_param_value(selected_ocr_params, param_key)
+        if module_name == 'none_ocr':
+            continue
+        add_module(OCR, module_name)
+
+    return module_class_list
+
+
 def prepare_local_files_forall():
 
-    # download files required by detect, ocr, inpaint and translators
+    # Only prepare models required by the active extraction configuration.
     download_and_check_module_files()
-
-    prepare_pkuseg()
 
     if shared.CACHE_UPDATED:
         shared.dump_cache()

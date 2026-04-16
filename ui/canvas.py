@@ -509,8 +509,10 @@ class Canvas(QGraphicsScene):
             opacity = self.textLayer.opacity() * 100
             if value == 0 and opacity == 0:
                 value = 100
-            self.textlayer_trans_slider.setValue(value)
-            self.originallayer_trans_slider.setValue(100 - value)
+            if self.textlayer_trans_slider is not None:
+                self.textlayer_trans_slider.setValue(value)
+            if self.originallayer_trans_slider is not None:
+                self.originallayer_trans_slider.setValue(100 - value)
             self.updateLayers()
 
     def addStrokeImageItem(self, pos: QPointF, pen: QPen, erasing: bool = False):
@@ -778,11 +780,10 @@ class Canvas(QGraphicsScene):
             angle_act = menu.addAction(self.tr("Reset Angle"))
             squeeze_act = menu.addAction(self.tr("Squeeze"))
             menu.addSeparator()
-            translate_act = menu.addAction(self.tr("translate"))
-            ocr_act = menu.addAction(self.tr("OCR"))
-            ocr_translate_act = menu.addAction(self.tr("OCR and translate"))
-            ocr_translate_inpaint_act = menu.addAction(self.tr("OCR, translate and inpaint"))
-            inpaint_act = menu.addAction(self.tr("inpaint"))
+            extract_act = menu.addAction(self.tr("Extract text"))
+            inpaint_act = None
+            if not shared.EXTRACT_ONLY:
+                inpaint_act = menu.addAction(self.tr("Inpaint"))
 
             rst = menu.exec(pos)
             
@@ -806,14 +807,8 @@ class Canvas(QGraphicsScene):
                 self.reset_angle.emit()
             elif rst == squeeze_act:
                 self.squeeze_blk.emit()
-            elif rst == translate_act:
-                self.run_blktrans.emit(-1)
-            elif rst == ocr_act:
+            elif rst == extract_act:
                 self.run_blktrans.emit(0)
-            elif rst == ocr_translate_act:
-                self.run_blktrans.emit(1)
-            elif rst == ocr_translate_inpaint_act:
-                self.run_blktrans.emit(2)
             elif rst == inpaint_act:
                 self.run_blktrans.emit(3)
 

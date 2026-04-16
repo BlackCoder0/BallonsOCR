@@ -5,7 +5,6 @@ from qtpy.QtWidgets import QMainWindow, QHBoxLayout, QVBoxLayout, QFileDialog, Q
 from qtpy.QtCore import Qt, Signal, QPoint, QEvent, QSize
 from qtpy.QtGui import QMouseEvent, QKeySequence, QActionGroup, QIcon
 
-from modules.translators import BaseTranslator
 from .custom_widget import Widget, PaintQSlider, SmallComboBox, ConfigClickableLabel
 from utils.shared import TITLEBAR_HEIGHT, WINDOW_BORDER_WIDTH, BOTTOMBAR_HEIGHT, LEFTBAR_WIDTH, LEFTBTN_WIDTH
 from .framelesswindow import FramelessMoveResize
@@ -96,23 +95,11 @@ class LeftBar(Widget):
         self.save_proj = actionSaveProj.triggered
         actionSaveProj.setShortcut(QKeySequence.StandardKey.Save)
 
-        actionExportAsDoc = QAction(self.tr("Export as Doc"), self)
-        self.export_doc = actionExportAsDoc.triggered
-        actionImportFromDoc = QAction(self.tr("Import from Doc"), self)
-        self.import_doc = actionImportFromDoc.triggered
-
         actionExportSrcTxt = QAction(self.tr("Export source text as TXT"), self)
         self.export_src_txt = actionExportSrcTxt.triggered
-        actionExportTranslationTxt = QAction(self.tr("Export translation as TXT"), self)
-        self.export_trans_txt = actionExportTranslationTxt.triggered
 
         actionExportSrcMD = QAction(self.tr("Export source text as markdown"), self)
         self.export_src_md = actionExportSrcMD.triggered
-        actionExportTranslationMD = QAction(self.tr("Export translation as markdown"), self)
-        self.export_trans_md = actionExportTranslationMD.triggered
-
-        actionImportTranslationTxt = QAction(self.tr("Import translation from TXT/markdown"), self)
-        self.import_trans_txt = actionImportTranslationTxt.triggered
 
         self.recentMenu = QMenu(self.tr("Open Recent"), self)
         
@@ -120,16 +107,8 @@ class LeftBar(Widget):
         openMenu.addActions([actionOpenFolder, actionOpenProj])
         openMenu.addMenu(self.recentMenu)
         openMenu.addSeparator()
-        openMenu.addActions([
-            actionSaveProj,
-            actionExportAsDoc,
-            actionImportFromDoc,
-            actionExportSrcTxt,
-            actionExportTranslationTxt,
-            actionExportSrcMD,
-            actionExportTranslationMD,
-            actionImportTranslationTxt,
-        ])
+        openMenu.addAction(actionSaveProj)
+        openMenu.addActions([actionExportSrcTxt, actionExportSrcMD])
         self.openBtn = OpenBtn()
         self.openBtn.setFixedSize(LEFTBTN_WIDTH, LEFTBTN_WIDTH)
         self.openBtn.setMenu(openMenu)
@@ -141,7 +120,7 @@ class LeftBar(Widget):
         
         self.runImgtransBtn = QPushButton()
         self.runImgtransBtn.setObjectName('RunButton')
-        self.runImgtransBtn.setText(self.tr('Run'))
+        self.runImgtransBtn.setText(self.tr('Extract'))
         font = self.runImgtransBtn.font()
         font.setPixelSize(10)
         self.runImgtransBtn.setFont(font)
@@ -245,7 +224,7 @@ class LeftBar(Widget):
 
     def onOpenProj(self):
         dialog = QFileDialog()
-        json_path = str(dialog.getOpenFileUrl(self.parent(), self.tr('Import *.docx'), filter="*.json")[0].toLocalFile())
+        json_path = str(dialog.getOpenFileUrl(self.parent(), self.tr('Open Project *.json'), filter="*.json")[0].toLocalFile())
         if osp.exists(json_path):
             self.open_json_proj.emit(json_path)
 
@@ -299,17 +278,13 @@ class TitleBar(Widget):
         self.global_search_trigger = globalSearchAction.triggered
         globalSearchAction.setShortcut(QKeySequence('Ctrl+G'))
 
-        replacePreMTkeyword = QAction(self.tr("Keyword substitution for machine translation source text"), self)
-        self.replacePreMTkeyword_trigger = replacePreMTkeyword.triggered
-        replaceMTkeyword = QAction(self.tr("Keyword substitution for machine translation"), self)
-        self.replaceMTkeyword_trigger = replaceMTkeyword.triggered
         replaceOCRkeyword = QAction(self.tr("Keyword substitution for source text"), self)
         self.replaceOCRkeyword_trigger = replaceOCRkeyword.triggered
 
         editMenu = QMenu(self.editToolBtn)
         editMenu.addActions([undoAction, redoAction])
         editMenu.addSeparator()
-        editMenu.addActions([pageSearchAction, globalSearchAction, replaceOCRkeyword, replacePreMTkeyword, replaceMTkeyword])
+        editMenu.addActions([pageSearchAction, globalSearchAction, replaceOCRkeyword])
         self.editToolBtn.setMenu(editMenu)
         self.editToolBtn.setPopupMode(QToolButton.InstantPopup)
 
@@ -330,29 +305,19 @@ class TitleBar(Widget):
             lang_actions.append(la)
         self.displayLanguageMenu.addActions(lang_actions)
 
-        drawBoardAction = QAction(self.tr('Drawing Board'), self)
-        drawBoardAction.setShortcut(QKeySequence('P'))
         texteditAction = QAction(self.tr('Text Editor'), self)
         texteditAction.setShortcut(QKeySequence('T'))
-        importTextStyles = QAction(self.tr('Import Text Styles'), self)
-        exportTextStyles = QAction(self.tr('Export Text Styles'), self)
         self.darkModeAction = darkModeAction = QAction(self.tr('Dark Mode'), self)
         darkModeAction.setCheckable(True)
 
         self.viewMenu = viewMenu = QMenu(self.viewToolBtn)
         viewMenu.addMenu(self.displayLanguageMenu)
-        viewMenu.addActions([drawBoardAction, texteditAction])
-        viewMenu.addSeparator()
-        viewMenu.addAction(importTextStyles)
-        viewMenu.addAction(exportTextStyles)
+        viewMenu.addAction(texteditAction)
         viewMenu.addSeparator()
         viewMenu.addAction(darkModeAction)
         self.viewToolBtn.setMenu(viewMenu)
         self.viewToolBtn.setPopupMode(QToolButton.InstantPopup)
         self.textedit_trigger = texteditAction.triggered
-        self.drawboard_trigger = drawBoardAction.triggered
-        self.importtstyle_trigger = importTextStyles.triggered
-        self.exporttstyle_trigger = exportTextStyles.triggered
         self.darkmode_trigger = darkModeAction.triggered
 
         self.goToolBtn = TitleBarToolBtn(self)
@@ -383,12 +348,11 @@ class TitleBar(Widget):
         self.toolsToolBtn.setPopupMode(QToolButton.InstantPopup)
 
         self.runToolBtn = TitleBarToolBtn(self)
-        self.runToolBtn.setText(self.tr('Run'))
+        self.runToolBtn.setText(self.tr('Extract'))
 
         self.stageActions = stageActions = [
             QAction(self.tr('Enable Text Dection'), self),
             QAction(self.tr('Enable OCR'), self),
-            QAction(self.tr('Enable Translation'), self),
             QAction(self.tr('Enable Inpainting'), self)
         ]
         for idx, sa in enumerate(stageActions):
@@ -396,18 +360,14 @@ class TitleBar(Widget):
             sa.setChecked(pcfg.module.stage_enabled(idx))
             sa.triggered.connect(self.stageEnableStateChanged)
 
-        runAction = QAction(self.tr('Run'), self)
-        runWoUpdateTextStyle = QAction(self.tr('Run without update textstyle'), self)
-        translatePageAction = QAction(self.tr('Translate page'), self)
+        runAction = QAction(self.tr('Extract'), self)
         runMenu = QMenu(self.runToolBtn)
-        runMenu.addActions(stageActions)
+        runMenu.addActions(stageActions[:2])
         runMenu.addSeparator()
-        runMenu.addActions([runAction, runWoUpdateTextStyle, translatePageAction])
+        runMenu.addAction(runAction)
         self.runToolBtn.setMenu(runMenu)
         self.runToolBtn.setPopupMode(QToolButton.InstantPopup)
         self.run_trigger = runAction.triggered
-        self.run_woupdate_textstyle_trigger = runWoUpdateTextStyle.triggered
-        self.translate_page_trigger = translatePageAction.triggered
 
         self.iconLabel = QLabel(self)
         if not C.ON_MACOS:
@@ -415,7 +375,7 @@ class TitleBar(Widget):
         else:
             self.iconLabel.setFixedWidth(LEFTBAR_WIDTH + 8)
 
-        self.titleLabel = QLabel('BallonTranslator')
+        self.titleLabel = QLabel('BallonsOCR')
         self.titleLabel.setObjectName('TitleLabel')
         self.titleLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
@@ -587,65 +547,6 @@ class SelectionWithConfigWidget(Widget):
             self.blockSignals(False)
     
 
-class TranslatorSelectionWidget(Widget):
-
-    cfg_clicked = Signal()
-
-    def __init__(self) -> None:
-        super().__init__()
-        label = ConfigClickableLabel(text=self.tr('Translate'))
-        label.clicked.connect(self.cfg_clicked)
-        label_src = ConfigClickableLabel(text=self.tr('Source'))
-        label_src.clicked.connect(self.cfg_clicked)
-        label_tgt = ConfigClickableLabel(text=self.tr('Target'))
-        label_tgt.clicked.connect(self.cfg_clicked)
-        
-        self.selector = SmallComboBox()
-        self.src_selector = SmallComboBox()
-        self.tgt_selector = SmallComboBox()
-        self.cfg_btn = SmallConfigPutton()
-        self.cfg_btn.clicked.connect(self.cfg_clicked)
-
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(label)
-        layout.addWidget(self.selector)
-        layout.addWidget(label_src)
-        layout.addWidget(self.src_selector)
-        layout.addWidget(label_tgt)
-        layout.addWidget(self.tgt_selector)
-        layout.addWidget(self.cfg_btn)
-        layout.setSpacing(1)
-
-    def enterEvent(self, event: QEvent) -> None:
-        if self.cfg_btn is not None:
-            self.cfg_btn.setIcon(CFG_ICON)
-        return super().enterEvent(event)
-
-    def leaveEvent(self, event: QEvent) -> None:
-        if self.cfg_btn is not None:
-            self.cfg_btn.setIcon(QIcon())
-        return super().leaveEvent(event)
-    
-    def blockSignals(self, block: bool):
-        self.src_selector.blockSignals(block)
-        self.tgt_selector.blockSignals(block)
-        self.selector.blockSignals(block)
-        super().blockSignals(block)
-    
-    def finishSetTranslator(self, translator: BaseTranslator):
-        self.blockSignals(True)
-        self.src_selector.clear()
-        self.tgt_selector.clear()
-        self.src_selector.addItems(translator.supported_src_list)
-        self.tgt_selector.addItems(translator.supported_tgt_list)
-        self.selector.setCurrentText(translator.name)
-        self.src_selector.setCurrentText(translator.lang_source)
-        self.tgt_selector.setCurrentText(translator.lang_target)
-        self.blockSignals(False)
-
-
-
 class BottomBar(Widget):
     
     textedit_checkchanged = Signal()
@@ -661,7 +562,6 @@ class BottomBar(Widget):
         self.textdet_selector = SelectionWithConfigWidget(self.tr('Text Detector'))
         self.ocr_selector = SelectionWithConfigWidget(self.tr('OCR'))
         self.inpaint_selector = SelectionWithConfigWidget(self.tr('Inpaint'))
-        self.trans_selector = TranslatorSelectionWidget()
 
         self.hlayout = QHBoxLayout(self)
         self.paintChecker = QCheckBox()
@@ -684,11 +584,11 @@ class BottomBar(Widget):
         self.textlayerSlider.setFixedWidth(150)
         self.textlayerSlider.setValue(100)
         self.textlayerSlider.setRange(0, 100)
+        self.textlayerSlider.hide()
         
         self.hlayout.addWidget(self.textdet_selector)
         self.hlayout.addWidget(self.ocr_selector)
         self.hlayout.addWidget(self.inpaint_selector)
-        self.hlayout.addWidget(self.trans_selector)
         # self.hlayout.addWidget(self.translatorStatusbtn)
         # self.hlayout.addWidget(self.transTranspageBtn)
         # self.hlayout.addWidget(self.inpainterStatBtn)
@@ -699,6 +599,10 @@ class BottomBar(Widget):
         self.hlayout.addWidget(self.texteditChecker)
         self.hlayout.addWidget(self.textblockChecker)
         self.hlayout.setContentsMargins(60, 0, 10, WINDOW_BORDER_WIDTH)
+
+        if C.EXTRACT_ONLY:
+            self.inpaint_selector.hide()
+            self.paintChecker.hide()
 
 
     def onPaintCheckerPressed(self):

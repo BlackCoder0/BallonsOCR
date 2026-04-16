@@ -1,7 +1,5 @@
-# Clone repository
-echo "STEP 1: Clone repository."
-git clone -b dev https://github.com/dmMaze/BallonsTranslator.git
-cd BallonsTranslator
+# Run from repository root
+echo "STEP 1: Use current BallonsOCR repository."
 
 # Define directories
 DATA_DIR='data'
@@ -131,11 +129,11 @@ echo "INFO: Use the pyinstaller spec file to bundle the app."
 sudo pyinstaller launch.spec
 
 # Check if app exists
-app_path="dist/BallonsTranslator.app"
+app_path="dist/BallonsOCR.app"
 if [ -e "$app_path" ]; then
     # Copy app to Downloads folder
     echo "INFO: Copying app to Downloads folder..."
-    ditto "$app_path" "$HOME/Downloads/BallonsTranslator.app"
+    ditto "$app_path" "$HOME/Downloads/BallonsOCR.app"
     echo "INFO: ✅ The app is now in your Downloads folder."
     echo "INFO: Drag and drop the app icon into Applications folder to install it."
     open $HOME/Downloads

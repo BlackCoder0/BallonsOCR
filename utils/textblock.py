@@ -34,7 +34,7 @@ class TextBlock:
     norm: float = -1
     merged: bool = False
     text: List = field(default_factory = lambda : [])
-    translation: str = ""
+    render_text: str = ""
     rich_text: str = ""
     _bounding_rect: List = None
     src_is_vertical: bool = None
@@ -212,6 +212,9 @@ class TextBlock:
 
         da = self.deprecated_attributes
         if len(da) > 0:
+            legacy_render_text = da.pop('translation', None)
+            if legacy_render_text and not self.render_text:
+                self.render_text = legacy_render_text
             if 'accumulate_color' in da:
                 self.fg_colors = np.array([da['fg_r'], da['fg_g'], da['fg_b']], dtype=np.float32)
                 self.bg_colors = np.array([da['bg_r'], da['bg_g'], da['bg_b']], dtype=np.float32)

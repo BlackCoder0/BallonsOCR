@@ -45,9 +45,9 @@ def dot_product(v1, v2):
 def get_bounding_box(shape):
     """
     根据 shape 计算外接矩形 [x_min, y_min, x_max, y_max]
-    BallonsTranslator 格式：使用 xyxy 字段
+    提取器项目格式：使用 xyxy 字段
     """
-    # BallonsTranslator 直接有 xyxy 字段，这是最准确的
+    # 当前项目直接使用 xyxy 字段，这是最准确的
     if 'xyxy' in shape and shape['xyxy']:
         xyxy = shape['xyxy']
         if len(xyxy) == 4:
@@ -261,7 +261,7 @@ def perform_merge(shapes, mode, config):
     
     shapes = [shape for shape in shapes if shape is not None]
 
-    # BallonsTranslator 没有 shape_type 字段，不需要过滤
+    # 当前项目没有 shape_type 字段，不需要过滤
     if not shapes:
         return [], 0
 
@@ -334,7 +334,7 @@ def perform_merge(shapes, mode, config):
             else:
                 group_shapes.sort(key=lambda s: get_bounding_box(s)[0])
 
-            # 合并文本内容 - BallonsTranslator 使用 text 字段（数组）
+            # 合并文本内容 - 当前项目使用 text 字段（数组）
             final_description = ""
             for s in group_shapes:
                 text = s.get('text', [])
@@ -360,7 +360,7 @@ def perform_merge(shapes, mode, config):
             merged_shape = copy.deepcopy(group_shapes[0])
             merged_shape['label'] = final_label
             
-            # BallonsTranslator 使用 text 字段（数组格式）
+            # 当前项目使用 text 字段（数组格式）
             merged_shape['text'] = [final_description] if final_description else []
 
             # 计算合并后的边界框
@@ -389,7 +389,7 @@ def perform_merge(shapes, mode, config):
                     rotated_y = dx * sin_angle + dy * cos_angle + center_y
                     rotated_points.append([rotated_x, rotated_y])
 
-                # 更新坐标 - BallonsTranslator 格式
+                # 更新坐标 - 当前项目格式
                 merged_shape['lines'] = [rotated_points]
                 merged_shape['xyxy'] = merged_box
                 merged_shape['direction'] = final_angle
@@ -398,7 +398,7 @@ def perform_merge(shapes, mode, config):
                 rect_points = [[merged_box[0], merged_box[1]], [merged_box[2], merged_box[1]], 
                               [merged_box[2], merged_box[3]], [merged_box[0], merged_box[3]]]
                 
-                # 更新坐标 - BallonsTranslator 格式
+                # 更新坐标 - 当前项目格式
                 merged_shape['xyxy'] = merged_box
                 merged_shape['lines'] = [rect_points]
                 merged_shape['_bounding_rect'] = [merged_box[0], merged_box[1], 
@@ -417,7 +417,7 @@ def perform_merge(shapes, mode, config):
 def process_file(file_path, config):
     """
     处理单个 JSON 文件的区域合并
-    仅支持 BallonsTranslator 格式
+    仅支持提取器项目格式
     """
     debug = config.get("ADVANCED_MERGE_OPTIONS", {}).get("debug_mode", False)
     
@@ -428,7 +428,7 @@ def process_file(file_path, config):
         return False, f"读取文件失败: {e}"
 
     if 'pages' not in data:
-        return False, "不是 BallonsTranslator 格式的 JSON 文件"
+        return False, "不是提取器项目 JSON 文件"
     
     # 从配置中获取当前图片名（由主窗口传递）
     img_name = config.get("CURRENT_IMAGE_NAME", None)

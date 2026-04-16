@@ -104,10 +104,9 @@ def gen_searchitem_list(span_list: List[int], text: str, blk_idx: int, pagename:
     return sr_list
 
 def match_blk(pattern: re.Pattern, blk: TextBlock, match_src: bool) -> Tuple[List[Tuple], int]:
-    if match_src:
-        rst_iter = pattern.finditer(blk.get_text())
-    else:
-        rst_iter = pattern.finditer(blk.translation)
+    if not match_src:
+        return [], 0
+    rst_iter = pattern.finditer(blk.get_text())
     rst_span_list = []
     match_counter = 0
     for rst in rst_iter:
@@ -203,10 +202,8 @@ class GlobalReplaceThead(ThreadBase):
 
     def _search_proj(self, target: str):
         row_count = self.srt.rowCount()
-        doc = QTextDocument()
-        doc.setUndoRedoEnabled(False)
-        sceneitem_list = {'src': [], 'trans': []}
-        background_list = {'src': [], 'trans': []}
+        sceneitem_list = {'src': []}
+        background_list = {'src': []}
         self.target_text = target
         
         for ii in range(row_count):
@@ -219,16 +216,6 @@ class GlobalReplaceThead(ThreadBase):
                         'edit': src, 
                         'replace': self.searched_pattern.sub(target, src.toPlainText())
                     })
-                for idx, rstitem_list in page_rst_item.blkid2match['trans'].items():
-                    edit = self.pairwidget_list[idx].e_trans
-                    item = self.textblk_item_list[idx]
-                    
-                    sceneitem_list['trans'].append({
-                        'edit': edit, 
-                        'item': item,
-                        'matched_map': [[rstitem.start, rstitem.end] for rstitem in rstitem_list]
-                    })
-                    
             else:
                 for idx in page_rst_item.blkid2match['src']:
                     blk: TextBlock = self.proj.pages[page_rst_item.pagename][idx]
@@ -241,32 +228,6 @@ class GlobalReplaceThead(ThreadBase):
                         'idx': idx
                     })
                     blk.text = replace
-                
-                for idx, rstitem_list in page_rst_item.blkid2match['trans'].items():
-                    blk: TextBlock = self.proj.pages[page_rst_item.pagename][idx]
-                    ori = blk.translation
-                    replace = ''
-                    ori_html = blk.rich_text
-                    replace_html = ''
-                    if blk.rich_text:
-                        ori_html = blk.rich_text
-                        doc.setHtml(blk.rich_text)
-                        span_list = [[rstitem.start, rstitem.end] for rstitem in rstitem_list]
-                        doc_replace(doc, span_list, target)
-                        replace_html = doc.toHtml()
-                        replace = doc.toPlainText()
-                    else:
-                        replace = self.searched_pattern.sub(target, ori)
-                    blk.translation = replace
-                    blk.rich_text = replace_html
-                    background_list['trans'].append({
-                        'ori': ori, 
-                        'replace': replace,
-                        'ori_html': ori_html,
-                        'replace_html': replace_html,
-                        'pagename': page_rst_item.pagename,
-                        'idx': idx
-                    })
 
         self.sceneitem_list = sceneitem_list
         self.background_list = background_list
@@ -327,10 +288,12 @@ class GlobalSearchWidget(Widget):
         self.regex_toggle.clicked.connect(self.on_regex_clicked)
 
         self.range_combobox = QComboBox(self)
-        self.range_combobox.addItems([self.tr('Translation'), self.tr('Source'), self.tr('All')])
+        self.range_combobox.addItem(self.tr('Source'))
         self.range_combobox.currentIndexChanged.connect(self.on_range_changed)
         self.range_label = QLabel(self)
         self.range_label.setText(self.tr(' in'))
+        self.range_combobox.hide()
+        self.range_label.hide()
 
         self.replace_editor = SearchEditor(self)
         self.replace_editor.setPlaceholderText(self.tr('Replace'))
@@ -340,6 +303,7 @@ class GlobalSearchWidget(Widget):
         self.replace_btn.clicked.connect(self.on_replace)
         self.replace_rerender_btn = NoBorderPushBtn(self.tr('Replace All and Re-render all pages'))
         self.replace_rerender_btn.clicked.connect(self.on_replace_rerender)
+        self.replace_rerender_btn.hide()
         self.replace_thread = GlobalReplaceThead()
 
         sp = self.replace_rerender_btn.sizePolicy()
@@ -401,7 +365,7 @@ class GlobalSearchWidget(Widget):
         self.commit_search()
 
     def on_range_changed(self):
-        pcfg.gsearch_range = self.range_combobox.currentIndex()
+        pcfg.gsearch_range = 1
         self.commit_search()
 
     def get_regex_pattern(self) -> re.Pattern:
@@ -433,8 +397,7 @@ class GlobalSearchWidget(Widget):
         self.req_update_pagetext.emit()
         self.counter_sum = 0
 
-        match_src = self.range_combobox.currentIndex() != 0
-        match_trans = self.range_combobox.currentIndex() != 1
+        match_src = True
         
         for pagename, page in self.imgtrans_proj.pages.items():
             page_match_counter = 0
@@ -447,13 +410,6 @@ class GlobalSearchWidget(Widget):
                     if match_counter > 0:
                         rstitem_list = gen_searchitem_list(rst_span_list, blk.get_text(), ii, pagename, is_src=True)
                         blkid2match['src'][ii] = rstitem_list
-                        page_rstitem_list += rstitem_list
-                        page_match_counter += match_counter
-                if match_trans:
-                    rst_span_list, match_counter = match_blk(pattern, blk, match_src=False)
-                    if match_counter > 0:
-                        rstitem_list = gen_searchitem_list(rst_span_list, blk.translation, ii, pagename, is_src=False)
-                        blkid2match['trans'][ii] = rstitem_list
                         page_rstitem_list += rstitem_list
                         page_match_counter += match_counter
             if page_match_counter > 0:
@@ -506,8 +462,7 @@ class GlobalSearchWidget(Widget):
         self.progress_bar.show()
         target = self.replace_editor.toPlainText()
 
-        replace_src = self.range_combobox.currentIndex() != 0
-        replace_trans = self.range_combobox.currentIndex() != 1
+        replace_src = True
         
         for pagename, page_row in rerender_pages:
             self.req_move_page.emit(pagename, False)
@@ -517,12 +472,6 @@ class GlobalSearchWidget(Widget):
                 for idx in page_rst_item.blkid2match['src']:
                     src = self.replace_thread.pairwidget_list[idx].e_source
                     src.setPlainText(pattern.sub(target, src.toPlainText()))
-
-            if replace_trans:
-                for idx, rstitem_list in page_rst_item.blkid2match['trans'].items():
-                    item = self.textblk_item_list[idx]
-                    span_list = [[rstitem.start, rstitem.end] for rstitem in rstitem_list]
-                    doc_replace(item.document(), span_list, target)
         
         if len(rerender_pages) > 0:
             self.req_move_page.emit(pagename, True)

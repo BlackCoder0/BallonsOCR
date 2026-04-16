@@ -97,9 +97,9 @@ class RunBlkTransCommand(QUndoCommand):
         if mode < 3:
             for blkitem, transpairw in zip(self.blkitems, self.transpairw_list):
                 if mode != 0:
-                    trs = blkitem.blk.translation
-                    transpairw.e_trans.setPlainTextAndKeepUndoStack(trs)
-                    blkitem.setPlainTextAndKeepUndoStack(trs)
+                    render_text = blkitem.blk.render_text
+                    transpairw.e_trans.setPlainTextAndKeepUndoStack(render_text)
+                    blkitem.setPlainTextAndKeepUndoStack(render_text)
                 blkitem.blk.rich_text = ''
                 if mode >= 0:
                     transpairw.e_source.setPlainTextAndKeepUndoStack(blkitem.blk.get_text())

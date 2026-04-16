@@ -8,7 +8,7 @@ from .custom_widget import ConfigComboBox, Widget
 from utils.config import pcfg
 from utils import shared as C
 from utils.shared import CONFIG_FONTSIZE_CONTENT, CONFIG_FONTSIZE_HEADER, CONFIG_FONTSIZE_TABLE, CONFIG_COMBOBOX_SHORT, CONFIG_COMBOBOX_LONG, CONFIG_COMBOBOX_MIDEAN
-from .module_parse_widgets import InpaintConfigPanel, TextDetectConfigPanel, TranslatorConfigPanel, OCRConfigPanel
+from .module_parse_widgets import InpaintConfigPanel, TextDetectConfigPanel, OCRConfigPanel
 
 class CustomIntValidator(QIntValidator):
 
@@ -348,23 +348,21 @@ class ConfigPanel(Widget):
         self.configTable = ConfigTable()
         self.configTable.tableitem_pressed.connect(self.onTableItemPressed)
         self.configContent = ConfigContent()
-        dlConfigPanel, dltableitem = self.addConfigBlock(self.tr('DL Module'))
-        generalConfigPanel, generalTableItem = self.addConfigBlock(self.tr('General'))
+        dlConfigPanel, dltableitem = self.addConfigBlock(self.tr('模型模块'))
+        generalConfigPanel, generalTableItem = self.addConfigBlock(self.tr('通用'))
         
-        label_text_det = self.tr('Text Detection')
-        label_text_ocr = self.tr('OCR')
-        label_inpaint = self.tr('Inpaint')
-        label_translator = self.tr('Translator')
-        label_startup = self.tr('Startup')
-        label_typesetting = self.tr('Typesetting')
-        label_save = self.tr('Save')
+        label_text_det = self.tr('文本检测')
+        label_text_ocr = self.tr('文字识别')
+        label_inpaint = self.tr('修补')
+        label_startup = self.tr('启动')
+        label_typesetting = self.tr('排版')
+        label_save = self.tr('保存')
         label_saladict = self.tr('SalaDict')
     
         dltableitem.appendRows([
             TableItem(label_text_det, CONFIG_FONTSIZE_TABLE),
             TableItem(label_text_ocr, CONFIG_FONTSIZE_TABLE),
             TableItem(label_inpaint, CONFIG_FONTSIZE_TABLE),
-            TableItem(label_translator, CONFIG_FONTSIZE_TABLE),
         ])
         generalTableItem.appendRows([
             TableItem(label_startup, CONFIG_FONTSIZE_TABLE),
@@ -373,42 +371,42 @@ class ConfigPanel(Widget):
             TableItem(label_saladict, CONFIG_FONTSIZE_TABLE),
         ])
         
-        self.load_model_checker, msublock = checkbox_with_label(self.tr('Load models on demand'), discription=self.tr('Load models on demand to save memory.'))
+        self.load_model_checker, msublock = checkbox_with_label(self.tr('按需加载模型'), discription=self.tr('按需加载模型以节省内存。'))
         self.load_model_checker.stateChanged.connect(self.on_load_model_changed)
         dlConfigPanel.vlayout.addWidget(msublock)
-        self.empty_runcache_checker, msublock = checkbox_with_label(self.tr('Empty cache after RUN'), discription=self.tr('Empty cache after RUN to save memory.'))
+        self.empty_runcache_checker, msublock = checkbox_with_label(self.tr('运行后清空缓存'), discription=self.tr('运行后清空缓存以节省内存。'))
         dlConfigPanel.vlayout.addWidget(msublock)
         self.empty_runcache_checker.stateChanged.connect(self.on_runcache_changed)
         self.unload_model_btn = QPushButton(parent=self)
         self.unload_model_btn.setFixedWidth(500)
-        self.unload_model_btn.setText(self.tr('Unload All Models'))
+        self.unload_model_btn.setText(self.tr('卸载全部模型'))
         self.unload_model_btn.clicked.connect(self.unload_models)
         msublock.layout().addWidget(self.unload_model_btn)
 
         dlConfigPanel.addTextLabel(label_text_det)
-        self.detect_config_panel = TextDetectConfigPanel(self.tr('Detector'), scrollWidget=self)
+        self.detect_config_panel = TextDetectConfigPanel(self.tr('检测器'), scrollWidget=self)
         self.detect_sub_block = dlConfigPanel.addBlockWidget(self.detect_config_panel)
         self.detect_config_panel.keep_existing_checker.clicked.connect(self.on_keepline_clicked)
 
         dlConfigPanel.addTextLabel(label_text_ocr)
-        self.ocr_config_panel = OCRConfigPanel(self.tr('OCR'), scrollWidget=self)
+        self.ocr_config_panel = OCRConfigPanel(self.tr('文字识别'), scrollWidget=self)
         self.ocr_sub_block = dlConfigPanel.addBlockWidget(self.ocr_config_panel)
 
         dlConfigPanel.addTextLabel(label_inpaint)
-        self.inpaint_config_panel = InpaintConfigPanel(self.tr('Inpainter'), scrollWidget=self)
+        self.inpaint_config_panel = InpaintConfigPanel(self.tr('修补器'), scrollWidget=self)
         self.inpaint_sub_block = dlConfigPanel.addBlockWidget(self.inpaint_config_panel)
 
-        dlConfigPanel.addTextLabel(label_translator)
-        self.trans_config_panel = TranslatorConfigPanel(label_translator, scrollWidget=self)
-        self.trans_sub_block = dlConfigPanel.addBlockWidget(self.trans_config_panel)
+        if C.EXTRACT_ONLY:
+            self.inpaint_sub_block.hide()
+            self.configTable.setRowHidden(2, dltableitem.index(), True)
 
         generalConfigPanel.addTextLabel(label_startup)
-        self.open_on_startup_checker, _ = generalConfigPanel.addCheckBox(self.tr('Reopen last project on startup'))
+        self.open_on_startup_checker, _ = generalConfigPanel.addCheckBox(self.tr('启动时重新打开上次项目'))
         self.open_on_startup_checker.stateChanged.connect(self.on_open_onstartup_changed)
 
         generalConfigPanel.addTextLabel(label_typesetting)
-        dec_program_str = self.tr('decide by program')
-        use_global_str = self.tr('use global setting')
+        dec_program_str = self.tr('由程序决定')
+        use_global_str = self.tr('使用全局设置')
 
         global_fntfmt_widget = QWidget()
         global_fntfmt_layout = QGridLayout(global_fntfmt_widget)
@@ -418,81 +416,81 @@ class ConfigPanel(Widget):
         b = generalConfigPanel.addBlockWidget(global_fntfmt_widget)
         b.layout().setContentsMargins(0, 0, 0, 0)
         b.setContentsMargins(0, 0, 0, 0)
-        self.let_fntsize_combox, sublock = combobox_with_label([dec_program_str, use_global_str], self.tr('Font Size'), parent=self, insert_stretch=True)
+        self.let_fntsize_combox, sublock = combobox_with_label([dec_program_str, use_global_str], self.tr('字号'), parent=self, insert_stretch=True)
         global_fntfmt_layout.addWidget(sublock, 0, 0)
 
         self.let_fntsize_combox.activated.connect(self.on_fntsize_flag_changed)
-        self.let_fntstroke_combox, sublock = combobox_with_label([dec_program_str, use_global_str], self.tr('Stroke Size'), parent=self, insert_stretch=True)
+        self.let_fntstroke_combox, sublock = combobox_with_label([dec_program_str, use_global_str], self.tr('描边粗细'), parent=self, insert_stretch=True)
         self.let_fntstroke_combox.activated.connect(self.on_fntstroke_flag_changed)
         global_fntfmt_layout.addWidget(sublock, 0, 1)
         
-        self.let_fntcolor_combox, sublock = combobox_with_label([dec_program_str, use_global_str], self.tr('Font Color'), parent=self, insert_stretch=True)
+        self.let_fntcolor_combox, sublock = combobox_with_label([dec_program_str, use_global_str], self.tr('文字颜色'), parent=self, insert_stretch=True)
         self.let_fntcolor_combox.activated.connect(self.on_fontcolor_flag_changed)
         global_fntfmt_layout.addWidget(sublock, 1, 0)
-        self.let_fnt_scolor_combox, sublock = combobox_with_label([dec_program_str, use_global_str], self.tr('Stroke Color'), parent=self, insert_stretch=True)
+        self.let_fnt_scolor_combox, sublock = combobox_with_label([dec_program_str, use_global_str], self.tr('描边颜色'), parent=self, insert_stretch=True)
         self.let_fnt_scolor_combox.activated.connect(self.on_font_scolor_flag_changed)
         global_fntfmt_layout.addWidget(sublock, 1, 1)
 
-        self.let_effect_combox, sublock = combobox_with_label([dec_program_str, use_global_str], self.tr('Effect'), parent=self, insert_stretch=True)
+        self.let_effect_combox, sublock = combobox_with_label([dec_program_str, use_global_str], self.tr('效果'), parent=self, insert_stretch=True)
         self.let_effect_combox.activated.connect(self.on_effect_flag_changed)
         global_fntfmt_layout.addWidget(sublock, 2, 0)
-        self.let_alignment_combox, sublock = combobox_with_label([dec_program_str, use_global_str], self.tr('Alignment'), parent=self, insert_stretch=True)
+        self.let_alignment_combox, sublock = combobox_with_label([dec_program_str, use_global_str], self.tr('对齐方式'), parent=self, insert_stretch=True)
         self.let_alignment_combox.activated.connect(self.on_alignment_flag_changed)
         global_fntfmt_layout.addWidget(sublock, 2, 1)
 
-        self.let_writing_mode_combox, sublock = combobox_with_label([dec_program_str, use_global_str], self.tr('Writing-mode'), parent=self, insert_stretch=True)
+        self.let_writing_mode_combox, sublock = combobox_with_label([dec_program_str, use_global_str], self.tr('排版方向'), parent=self, insert_stretch=True)
         self.let_writing_mode_combox.activated.connect(self.on_writing_mode_flag_changed)
         global_fntfmt_layout.addWidget(sublock, 3, 0)
-        self.let_family_combox, sublock = combobox_with_label([self.tr('Keep existing'), self.tr('Always use global setting')], self.tr('Font Family'), parent=self, insert_stretch=True)
+        self.let_family_combox, sublock = combobox_with_label([self.tr('保留现有'), self.tr('始终使用全局设置')], self.tr('字体'), parent=self, insert_stretch=True)
         self.let_family_combox.activated.connect(self.on_family_flag_changed)
         global_fntfmt_layout.addWidget(sublock, 3, 1)
 
         global_fntfmt_layout.addItem(QSpacerItem(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding), 0, 2)
 
-        self.let_autolayout_checker, sublock = generalConfigPanel.addCheckBox(self.tr('Auto layout'), 
-                discription=self.tr('Split translation into multi-lines according to the extracted balloon region.'))
+        self.let_autolayout_checker, sublock = generalConfigPanel.addCheckBox(self.tr('自动排版'), 
+                discription=self.tr('根据检测到的气泡区域自动将提取文本分成多行。'))
 
         self.let_autolayout_checker.stateChanged.connect(self.on_autolayout_changed)
-        self.let_uppercase_checker, _ = generalConfigPanel.addCheckBox(self.tr('To uppercase'))
+        self.let_uppercase_checker, _ = generalConfigPanel.addCheckBox(self.tr('转为大写'))
         self.let_uppercase_checker.stateChanged.connect(self.on_uppercase_changed)
 
-        self.let_textstyle_indep_checker, _ = generalConfigPanel.addCheckBox(self.tr('Independent text styles for each projects'))
+        self.let_textstyle_indep_checker, _ = generalConfigPanel.addCheckBox(self.tr('每个项目使用独立文本样式'))
         self.let_textstyle_indep_checker.stateChanged.connect(self.on_textstyle_indep_changed)
 
-        self.let_show_only_custom_fonts, sublock = generalConfigPanel.addCheckBox(self.tr("Show only custom fonts"))
+        self.let_show_only_custom_fonts, sublock = generalConfigPanel.addCheckBox(self.tr("仅显示自定义字体"))
         self.let_show_only_custom_fonts.stateChanged.connect(self.on_show_only_custom_fonts)
 
         generalConfigPanel.addTextLabel(label_save)
-        self.rst_imgformat_combobox, imsave_sublock = generalConfigPanel.addCombobox(['PNG', 'JPG', 'WEBP', 'JXL'], self.tr('Result image format'))
+        self.rst_imgformat_combobox, imsave_sublock = generalConfigPanel.addCombobox(['PNG', 'JPG', 'WEBP', 'JXL'], self.tr('结果图格式'))
         self.rst_imgformat_combobox.activated.connect(self.on_rst_imgformat_changed)
         self.rst_imgquality_edit = PercentageLineEdit('100')
         self.rst_imgquality_edit.setFixedWidth(CONFIG_COMBOBOX_SHORT)
         self.rst_imgquality_edit.finish_edited.connect(self.on_edit_quality_changed)
 
-        sublock = ConfigSubBlock(self.rst_imgquality_edit, self.tr('Quality'), vertical_layout=False)
+        sublock = ConfigSubBlock(self.rst_imgquality_edit, self.tr('质量'), vertical_layout=False)
         sublock.layout().setAlignment(Qt.AlignmentFlag.AlignLeft)
         sublock.layout().insertStretch(-1)
         imsave_sublock.layout().addWidget(sublock)
 
-        self.intermediate_imgformat_combobox, intermediate_imsave_sublock = generalConfigPanel.addCombobox(['PNG', 'JXL'], self.tr('Intermediate image format'))
+        self.intermediate_imgformat_combobox, intermediate_imsave_sublock = generalConfigPanel.addCombobox(['PNG', 'JXL'], self.tr('中间图格式'))
         self.intermediate_imgformat_combobox.activated.connect(self.on_intermediate_imgformat_changed)
 
         generalConfigPanel.addTextLabel(label_saladict)
 
-        sublock = ConfigSubBlock(ConfigTextLabel(self.tr("<a href=\"https://github.com/dmMaze/BallonsTranslator/tree/master/doc/saladict.md\">Installation guide</a>"), CONFIG_FONTSIZE_CONTENT - 2), vertical_layout=False)
+        sublock = ConfigSubBlock(ConfigTextLabel(self.tr("<a href=\"https://github.com/dmMaze/BallonsTranslator/tree/master/doc/saladict.md\">安装说明</a>"), CONFIG_FONTSIZE_CONTENT - 2), vertical_layout=False)
         sublock.layout().insertStretch(-1)
         generalConfigPanel.addSublock(sublock)
 
-        self.selectext_minimenu_checker, _ = generalConfigPanel.addCheckBox(self.tr('Show mini menu when selecting text.'))
+        self.selectext_minimenu_checker, _ = generalConfigPanel.addCheckBox(self.tr('选中文本时显示迷你菜单'))
         self.selectext_minimenu_checker.stateChanged.connect(self.on_selectext_minimenu_changed)
         self.saladict_shortcut = QKeySequenceEdit("ALT+W", self)
         self.saladict_shortcut.keySequenceChanged.connect(self.on_saladict_shortcut_changed)
         self.saladict_shortcut.setFixedWidth(CONFIG_COMBOBOX_MIDEAN)
 
-        sublock = ConfigSubBlock(self.saladict_shortcut, self.tr("Shortcut"), vertical_layout=False)
+        sublock = ConfigSubBlock(self.saladict_shortcut, self.tr("快捷键"), vertical_layout=False)
         sublock.layout().insertStretch(-1)
         generalConfigPanel.addSublock(sublock)
-        self.searchurl_combobox, _ = generalConfigPanel.addCombobox(["https://www.google.com/search?q=", "https://www.bing.com/search?q=", "https://duckduckgo.com/?q=", "https://yandex.com/search/?text=", "http://www.baidu.com/s?wd=", "https://search.yahoo.com/search;?p=", "https://www.urbandictionary.com/define.php?term="], self.tr("Search Engines"), fix_size=False)
+        self.searchurl_combobox, _ = generalConfigPanel.addCombobox(["https://www.google.com/search?q=", "https://www.bing.com/search?q=", "https://duckduckgo.com/?q=", "https://yandex.com/search/?text=", "http://www.baidu.com/s?wd=", "https://search.yahoo.com/search;?p=", "https://www.urbandictionary.com/define.php?term="], self.tr("搜索引擎"), fix_size=False)
         self.searchurl_combobox.setEditable(True)
         self.searchurl_combobox.setFixedWidth(CONFIG_COMBOBOX_LONG)
         self.searchurl_combobox.currentTextChanged.connect(self.on_searchurl_changed)
@@ -507,6 +505,18 @@ class ConfigPanel(Widget):
         hlayout.addWidget(splitter)
         hlayout.setSpacing(0)
         hlayout.setContentsMargins(0, 0, 0, 0)
+
+        if C.EXTRACT_ONLY:
+            for row in (1, 2, 3):
+                self.configTable.setRowHidden(row, generalTableItem.index(), True)
+            for label in generalConfigPanel.label_list[1:]:
+                label.hide()
+            for subblock in generalConfigPanel.subblock_list[1:]:
+                subblock.hide()
+            pcfg.let_textstyle_indep_flag = False
+            pcfg.let_show_only_custom_fonts_flag = False
+            pcfg.textselect_mini_menu = False
+            pcfg.show_trans_text = False
 
         self.configTable.expandAll()
 
@@ -596,12 +606,9 @@ class ConfigPanel(Widget):
         pcfg.let_show_only_custom_fonts_flag = self.let_show_only_custom_fonts.isChecked()
         self.show_only_custom_font.emit(pcfg.let_show_only_custom_fonts_flag)
 
-    def focusOnTranslator(self):
-        idx0, idx1 = self.trans_sub_block.idx0, self.trans_sub_block.idx1
-        self.configTable.setCurrentItem(idx0, idx1)
-        self.configTable.tableitem_pressed.emit(idx0, idx1)
-
     def focusOnInpaint(self):
+        if C.EXTRACT_ONLY:
+            return
         idx0, idx1 = self.inpaint_sub_block.idx0, self.inpaint_sub_block.idx1
         self.configTable.setCurrentItem(idx0, idx1)
         self.configTable.tableitem_pressed.emit(idx0, idx1)

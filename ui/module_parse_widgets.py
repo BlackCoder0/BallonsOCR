@@ -1,9 +1,9 @@
 from typing import List, Callable
 
-from modules import GET_VALID_INPAINTERS, GET_VALID_TEXTDETECTORS, GET_VALID_TRANSLATORS, GET_VALID_OCR, \
-    BaseTranslator, DEFAULT_DEVICE, GPUINTENSIVE_SET
+from modules import GET_VALID_INPAINTERS, GET_VALID_TEXTDETECTORS, GET_VALID_OCR, \
+    DEFAULT_DEVICE, GPUINTENSIVE_SET
 from utils.logger import logger as LOGGER
-from .custom_widget import ConfigComboBox, ParamComboBox, NoBorderPushBtn, ParamNameLabel
+from .custom_widget import ConfigComboBox, ParamComboBox, ParamNameLabel
 from utils.shared import CONFIG_COMBOBOX_LONG, size2width, CONFIG_COMBOBOX_SHORT, CONFIG_COMBOBOX_HEIGHT
 from utils.config import pcfg
 
@@ -188,13 +188,6 @@ class ParamWidget(QWidget):
                     param_widget = ParamComboBox(
                         param_key, param_dict['options'], size=size, scrollWidget=scrollWidget, flush_btn=flush_btn, path_selector=path_selector)
 
-                    if param_key == 'device' and DEFAULT_DEVICE == 'cpu':
-                        param_dict['value'] = 'cpu'
-                        for ii, device in enumerate(param_dict['options']):
-                            if device in GPUINTENSIVE_SET:
-                                model = param_widget.model()
-                                item = model.item(ii, 0)
-                                item.setEnabled(False)
                     param_widget.setCurrentText(str(value))
                     param_widget.setEditable(param_dict.get('editable', False))
 
@@ -365,68 +358,12 @@ class ModuleConfigParseWidget(QWidget):
         self.module_changed.emit(self.module_combobox.currentText())
 
 
-class TranslatorConfigPanel(ModuleConfigParseWidget):
-
-    show_pre_MT_keyword_window = Signal()
-    show_MT_keyword_window = Signal()
-    show_OCR_keyword_window = Signal()
-
-    def __init__(self, module_name, scrollWidget: QWidget = None, *args, **kwargs) -> None:
-        super().__init__(module_name, GET_VALID_TRANSLATORS, scrollWidget=scrollWidget, *args, **kwargs)
-        self.translator_changed = self.module_changed
-    
-        self.source_combobox = ConfigComboBox(scrollWidget=scrollWidget)
-        self.target_combobox = ConfigComboBox(scrollWidget=scrollWidget)
-        self.replacePreMTkeywordBtn = NoBorderPushBtn(self.tr("Keyword substitution for machine translation source text"), self)
-        self.replacePreMTkeywordBtn.clicked.connect(self.show_pre_MT_keyword_window)
-        self.replacePreMTkeywordBtn.setFixedWidth(500)
-        self.replaceMTkeywordBtn = NoBorderPushBtn(self.tr("Keyword substitution for machine translation"), self)
-        self.replaceMTkeywordBtn.clicked.connect(self.show_MT_keyword_window)
-        self.replaceMTkeywordBtn.setFixedWidth(500)
-        self.replaceOCRkeywordBtn = NoBorderPushBtn(self.tr("Keyword substitution for source text"), self)
-        self.replaceOCRkeywordBtn.clicked.connect(self.show_OCR_keyword_window)
-        self.replaceOCRkeywordBtn.setFixedWidth(500)
-        self.translateByTextblockBox = ParamCheckerBox(self.tr('Translate each text block individually'))
-
-        st_layout = QHBoxLayout()
-        st_layout.setSpacing(15)
-        st_layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-        st_layout.addWidget(ParamNameLabel(self.tr('Source')))
-        st_layout.addWidget(self.source_combobox)
-        st_layout.addWidget(ParamNameLabel(self.tr('Target')))
-        st_layout.addWidget(self.target_combobox)
-        
-        self.vlayout.insertLayout(1, st_layout) 
-        self.vlayout.addWidget(self.translateByTextblockBox)
-        self.vlayout.addWidget(self.replaceOCRkeywordBtn)
-        self.vlayout.addWidget(self.replacePreMTkeywordBtn)
-        self.vlayout.addWidget(self.replaceMTkeywordBtn)
-
-    def finishSetTranslator(self, translator: BaseTranslator):
-        self.source_combobox.blockSignals(True)
-        self.target_combobox.blockSignals(True)
-        self.module_combobox.blockSignals(True)
-
-        self.source_combobox.clear()
-        self.target_combobox.clear()
-
-        self.source_combobox.addItems(translator.supported_src_list)
-        self.target_combobox.addItems(translator.supported_tgt_list)
-        self.module_combobox.setCurrentText(translator.name)
-        self.source_combobox.setCurrentText(translator.lang_source)
-        self.target_combobox.setCurrentText(translator.lang_target)
-        self.updateModuleParamWidget()
-        self.source_combobox.blockSignals(False)
-        self.target_combobox.blockSignals(False)
-        self.module_combobox.blockSignals(False)
-
-
 class InpaintConfigPanel(ModuleConfigParseWidget):
     def __init__(self, module_name: str, scrollWidget: QWidget = None, *args, **kwargs) -> None:
         super().__init__(module_name, GET_VALID_INPAINTERS, scrollWidget = scrollWidget, *args, **kwargs)
         self.inpainter_changed = self.module_changed
         self.setInpainter = self.setModule
-        self.needInpaintChecker = ParamCheckerBox(self.tr('Let the program decide whether it is necessary to use the selected inpaint method.'))
+        self.needInpaintChecker = ParamCheckerBox(self.tr('由程序决定是否需要使用所选修补方法。'))
         self.vlayout.addWidget(self.needInpaintChecker)
 
     def showEvent(self, e) -> None:
@@ -442,7 +379,7 @@ class TextDetectConfigPanel(ModuleConfigParseWidget):
         super().__init__(module_name, GET_VALID_TEXTDETECTORS, scrollWidget = scrollWidget, *args, **kwargs)
         self.detector_changed = self.module_changed
         self.setDetector = self.setModule
-        self.keep_existing_checker = QCheckBox(text=self.tr('Keep Existing Lines'))
+        self.keep_existing_checker = QCheckBox(text=self.tr('保留现有文本线'))
         self.p_layout.insertWidget(2, self.keep_existing_checker)
         
 
@@ -451,11 +388,11 @@ class OCRConfigPanel(ModuleConfigParseWidget):
         super().__init__(module_name, GET_VALID_OCR, scrollWidget = scrollWidget, *args, **kwargs)
         self.ocr_changed = self.module_changed
         self.setOCR = self.setModule
-        self.restoreEmptyOCRChecker = QCheckBox(self.tr("Delete and restore region where OCR return empty string."), self)
+        self.restoreEmptyOCRChecker = QCheckBox(self.tr("当 OCR 返回空文本时，删除并还原对应区域。"), self)
         self.restoreEmptyOCRChecker.clicked.connect(self.on_restore_empty_ocr)
         self.vlayout.addWidget(self.restoreEmptyOCRChecker)
         # 字体检测选项
-        self.fontDetectChecker = QCheckBox(self.tr("Font Detection"), self)
+        self.fontDetectChecker = QCheckBox(self.tr("字体检测"), self)
         self.fontDetectChecker.setChecked(pcfg.module.ocr_font_detect)
         self.fontDetectChecker.clicked.connect(self.on_fontdetect_changed)
         self.vlayout.addWidget(self.fontDetectChecker)

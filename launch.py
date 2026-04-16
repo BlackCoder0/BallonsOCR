@@ -39,16 +39,158 @@ else:
 parser.add_argument("--debug", action='store_true')
 parser.add_argument("--requirements", default='requirements.txt')
 parser.add_argument("--headless", action='store_true', help='run without GUI')
-parser.add_argument("--headless_continuous", action='store_true', help='like headless but will not exit after finishing translation, prompts the user for new exec_dirs until user exits the program')
-parser.add_argument("--exec_dirs", default='', help='translation queue (project directories) separated by comma')
+parser.add_argument("--headless_continuous", action='store_true', help='like headless but will not exit after finishing extraction, prompts the user for new exec_dirs until user exits the program')
+parser.add_argument("--exec_dirs", default='', help='extraction queue (project directories) separated by comma')
 parser.add_argument("--ldpi", default=None, type=float, help='logical dots perinch')
-parser.add_argument("--export-translation-txt", action='store_true', help='save translation to txt file once RUN completed')
 parser.add_argument("--export-source-txt", action='store_true', help='save source to txt file once RUN completed')
+parser.add_argument("--export-source-md", action='store_true', help='save source to markdown file once RUN completed')
 parser.add_argument("--frozen", action='store_true', help='run without checking requirements')
 parser.add_argument("--update", action='store_true', help="Update the repository before launching") # Add argument --update
-parser.add_argument("--config_path", default=shared.CONFIG_PATH, help='Config file to use for translation') # Named config_path to avoid conflict with existing name config
+parser.add_argument("--config_path", default=shared.CONFIG_PATH, help='Config file to use for extraction') # Named config_path to avoid conflict with existing name config
 parser.add_argument('--nightly', action='store_true', help="Enable AMD Nightly ROCm")
 args, _ = parser.parse_known_args()
+
+
+def _set_param_value(params_dict, param_key, value):
+    if params_dict is None or param_key not in params_dict:
+        return
+    param = params_dict[param_key]
+    if isinstance(param, dict) and 'value' in param:
+        param['value'] = value
+    else:
+        params_dict[param_key] = value
+
+
+def _pick_first_matching_option(options, keywords):
+    lowered_keywords = [kw.lower() for kw in keywords]
+    for option in options:
+        option_text = str(option).lower()
+        if any(keyword in option_text for keyword in lowered_keywords):
+            return option
+    return None
+
+
+def _get_module_param_value(params_dict, param_key):
+    if not isinstance(params_dict, dict) or param_key not in params_dict:
+        return None
+    param = params_dict[param_key]
+    if isinstance(param, dict):
+        return param.get('value')
+    return param
+
+
+def _stariver_detector_ready(detector_params):
+    username = _get_module_param_value(detector_params, 'User')
+    password = _get_module_param_value(detector_params, 'Password')
+    if not username or not password:
+        return False
+    username = str(username).strip()
+    password = str(password).strip()
+    placeholder_user = '填入你的用户名'
+    placeholder_password = '填入你的密码。请注意，密码会明文保存，请勿在公共电脑上使用'
+    return username != placeholder_user and password != placeholder_password
+
+
+def apply_extract_mode_defaults():
+    from utils.config import pcfg
+    from utils.logger import logger as LOGGER
+    from modules import OCR, TEXTDETECTORS, GET_VALID_OCR, GET_VALID_TEXTDETECTORS, merge_config_module_params
+
+    pcfg.module.enable_detect = True
+    pcfg.module.enable_ocr = True
+    pcfg.module.enable_inpaint = False
+    pcfg.module.keep_exist_textlines = False
+    pcfg.module.update_finish_code()
+    pcfg.show_source_text = True
+    pcfg.show_trans_text = False
+    pcfg.imgtrans_paintmode = False
+    pcfg.let_autolayout_flag = False
+
+    available_detectors = GET_VALID_TEXTDETECTORS()
+    pcfg.module.textdetector_params = merge_config_module_params(
+        pcfg.module.textdetector_params,
+        available_detectors,
+        TEXTDETECTORS.get,
+    )
+    preferred_detector_order = ['ctd', 'ysgyolo', 'stariver_ocr']
+    current_detector = pcfg.module.textdetector
+    current_detector_valid = current_detector in available_detectors
+    current_detector_ready = True
+    if current_detector == 'stariver_ocr':
+        current_detector_ready = _stariver_detector_ready(
+            pcfg.module.textdetector_params.get('stariver_ocr')
+        )
+    if available_detectors and (not current_detector_valid or not current_detector_ready):
+        preferred_detector = next(
+            (name for name in preferred_detector_order if name in available_detectors),
+            available_detectors[0],
+        )
+        if preferred_detector != current_detector:
+            LOGGER.info(
+                f'Extraction mode switched detector from {current_detector} to {preferred_detector}.'
+            )
+        pcfg.module.textdetector = preferred_detector
+
+    available_ocr = GET_VALID_OCR()
+    pcfg.module.ocr_params = merge_config_module_params(pcfg.module.ocr_params, available_ocr, OCR.get)
+    # Prefer OCR backends that normalize vertical manga text regions before recognition.
+    preferred_ocr_order = [
+        'smart_ocr',
+        'mit48px',
+        'mit48px_ctc',
+        'manga_ocr',
+        'paddle_ocr',
+        'PaddleOCRVLManga',
+        'paddle_vl',
+        'windows_ocr',
+        'macos_ocr',
+    ]
+    preferred_ocr = next((name for name in preferred_ocr_order if name in available_ocr), None)
+    if preferred_ocr is None and pcfg.module.ocr not in available_ocr and available_ocr:
+        preferred_ocr = available_ocr[0]
+    if preferred_ocr is not None:
+        pcfg.module.ocr = preferred_ocr
+
+    for module_name, params in pcfg.module.ocr_params.items():
+        if params is None:
+            continue
+        if module_name == 'smart_ocr':
+            vertical_ocr = next((name for name in ['mit48px', 'mit48px_ctc', 'manga_ocr'] if name in available_ocr), None)
+            horizontal_ocr = next((name for name in ['windows_ocr', 'one_ocr', 'paddle_ocr', 'mit48px'] if name in available_ocr), None)
+            fallback_candidates = []
+            if vertical_ocr is not None and vertical_ocr != horizontal_ocr:
+                fallback_candidates.append(vertical_ocr)
+            fallback_candidates.extend(['mit48px_ctc', 'mit48px', 'one_ocr', 'paddle_ocr', 'windows_ocr', 'none_ocr'])
+            fallback_ocr = next((name for name in fallback_candidates if name in available_ocr and name != horizontal_ocr), None)
+
+            if vertical_ocr is not None:
+                _set_param_value(params, 'vertical_ocr', vertical_ocr)
+            if horizontal_ocr is not None:
+                _set_param_value(params, 'horizontal_ocr', horizontal_ocr)
+                _set_param_value(params, 'page_ocr', 'horizontal_ocr')
+            if fallback_ocr is not None:
+                _set_param_value(params, 'fallback_ocr', fallback_ocr)
+            else:
+                _set_param_value(params, 'fallback_ocr', 'none_ocr')
+            _set_param_value(params, 'retry_on_empty', True)
+        elif module_name == 'paddle_ocr':
+            _set_param_value(params, 'language', 'Chinese & English')
+            _set_param_value(params, 'output_format', 'As Recognized')
+        elif module_name == 'google_vision':
+            _set_param_value(params, 'language_hints', 'zh-CN')
+        elif module_name == 'ocr_llm_api':
+            _set_param_value(params, 'language', 'Chinese (Simplified)')
+        elif module_name in {'windows_ocr', 'macos_ocr'} and 'language' in params:
+            language_param = params['language']
+            options = language_param.get('options', []) if isinstance(language_param, dict) else []
+            preferred_language = _pick_first_matching_option(options, ['chinese', '中文', 'zh'])
+            if preferred_language is not None:
+                _set_param_value(params, 'language', preferred_language)
+
+    if preferred_ocr is not None:
+        LOGGER.info(f'Extraction mode enabled. Preferred OCR set to {preferred_ocr}.')
+    else:
+        LOGGER.info(f'Extraction mode enabled. Using existing OCR setting: {pcfg.module.ocr}.')
 
 
 def is_installed(package):
@@ -182,6 +324,7 @@ def main():
     shared.DEFAULT_DISPLAY_LANG = QLocale.system().name().replace('en_CN', 'zh_CN')
     shared.HEADLESS = args.headless
     shared.HEADLESS_CONTINUOUS = args.headless_continuous
+    shared.EXTRACT_ONLY = True
     shared.load_cache()
     program_config.load_config(args.config_path)
     config = program_config.pcfg
@@ -192,7 +335,7 @@ def main():
 
     if sys.platform == 'win32':
         import ctypes
-        myappid = u'BalloonsTranslator' # arbitrary string
+        myappid = u'BallonsOCR' # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
     import qtpy
@@ -220,14 +363,13 @@ def main():
     if args.headless or args.headless_continuous:
         app_args = sys.argv + ['-platform', 'offscreen']
     app = QApplication(app_args)
-    app.setApplicationName('BalloonsTranslator')
+    app.setApplicationName('BallonsOCR')
     app.setApplicationVersion(VERSION)
 
-    # import msl.loadlib (required by translators/trans_eztrans) before init QApplication
-    # yield QWindowsContext: OleInitialize() failed on py3.10, 
     from modules.base import init_module_registries
     from modules.prepare_local_files import prepare_local_files_forall
-    init_module_registries()
+    init_module_registries(['textdetector', 'ocr'])
+    apply_extract_mode_defaults()
     prepare_local_files_forall()
 
     if not args.headless and not args.headless_continuous:
@@ -356,23 +498,18 @@ def prepare_environment():
                 run_pip(f"install {req}", req)
                 req_updated = True
 
-    if is_amd_gpu():
+    torch_command = os.environ.get('TORCH_COMMAND', "pip install torch==2.7.1 torchvision==0.22.1 torchaudio==2.7.1 --index-url https://download.pytorch.org/whl/cpu --disable-pip-version-check")
+    if args.nightly and is_amd_gpu():
         print('AMD GPU: Yes')
-        if args.nightly:
-            amd_nightly_gpu = supported_amd_nightly_gpu()
-            if amd_nightly_gpu == "None":
-                Exception("No AMD Nightly GPU supported")
-            if amd_nightly_gpu == "RDNA3":
-                torch_command = os.environ.get('TORCH_COMMAND',
-                                               "pip install https://repo.radeon.com/rocm/windows/rocm-rel-6.4.4/torch-2.8.0a0%2Bgitfc14c65-cp312-cp312-win_amd64.whl https://repo.radeon.com/rocm/windows/rocm-rel-6.4.4/torchvision-0.24.0a0%2Bc85f008-cp312-cp312-win_amd64.whl https://repo.radeon.com/rocm/windows/rocm-rel-6.4.4/torchaudio-2.6.0a0%2B1a8f621-cp312-cp312-win_amd64.whl")
-            if amd_nightly_gpu == "RDNA4":
-                torch_command = os.environ.get('TORCH_COMMAND',
-                                               "pip install https://repo.radeon.com/rocm/windows/rocm-rel-6.4.4/torch-2.8.0a0%2Bgitfc14c65-cp312-cp312-win_amd64.whl https://repo.radeon.com/rocm/windows/rocm-rel-6.4.4/torchvision-0.24.0a0%2Bc85f008-cp312-cp312-win_amd64.whl https://repo.radeon.com/rocm/windows/rocm-rel-6.4.4/torchaudio-2.6.0a0%2B1a8f621-cp312-cp312-win_amd64.whl")
-        else:
-            # AMD GPU: Cuda 11.8, Pytorch 2.2.2
-            torch_command = os.environ.get('TORCH_COMMAND', "pip install torch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2 --index-url https://download.pytorch.org/whl/cu118 --disable-pip-version-check")
-    else:
-        torch_command = os.environ.get('TORCH_COMMAND', "pip install torch==2.7.1 torchvision==0.22.1 torchaudio==2.7.1 --index-url https://download.pytorch.org/whl/cu118 --disable-pip-version-check")
+        amd_nightly_gpu = supported_amd_nightly_gpu()
+        if amd_nightly_gpu == "None":
+            Exception("No AMD Nightly GPU supported")
+        if amd_nightly_gpu == "RDNA3":
+            torch_command = os.environ.get('TORCH_COMMAND',
+                                           "pip install https://repo.radeon.com/rocm/windows/rocm-rel-6.4.4/torch-2.8.0a0%2Bgitfc14c65-cp312-cp312-win_amd64.whl https://repo.radeon.com/rocm/windows/rocm-rel-6.4.4/torchvision-0.24.0a0%2Bc85f008-cp312-cp312-win_amd64.whl https://repo.radeon.com/rocm/windows/rocm-rel-6.4.4/torchaudio-2.6.0a0%2B1a8f621-cp312-cp312-win_amd64.whl")
+        if amd_nightly_gpu == "RDNA4":
+            torch_command = os.environ.get('TORCH_COMMAND',
+                                           "pip install https://repo.radeon.com/rocm/windows/rocm-rel-6.4.4/torch-2.8.0a0%2Bgitfc14c65-cp312-cp312-win_amd64.whl https://repo.radeon.com/rocm/windows/rocm-rel-6.4.4/torchvision-0.24.0a0%2Bc85f008-cp312-cp312-win_amd64.whl https://repo.radeon.com/rocm/windows/rocm-rel-6.4.4/torchaudio-2.6.0a0%2B1a8f621-cp312-cp312-win_amd64.whl")
     if args.reinstall_torch or not is_installed("torch") or not is_installed("torchvision"):
         run(f'"{python}" -m {torch_command}', "Installing torch and torchvision", "Couldn't install torch", live=True)
         req_updated = True

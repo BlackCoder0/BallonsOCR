@@ -3,7 +3,7 @@ from typing import List
 import os
 import logging
 
-LOGGER = logging.getLogger("BallonTranslator")
+LOGGER = logging.getLogger("BalloonsExtractor")
 
 try:
     from paddleocr import PaddleOCR

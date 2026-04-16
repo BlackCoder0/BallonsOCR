@@ -2,6 +2,7 @@ from typing import List, Tuple
 import json
 import os.path as osp
 import os
+import re
 
 HALF2FULL = {i: i + 0xFEE0 for i in range(0x21, 0x7F)}
 HALF2FULL[0x20] = 0x3000
@@ -20,6 +21,8 @@ PKUSEG_PUNCSET = {' ', '.', '　'}
 PKUSEGPATH = r'data/pkusegscores.json'
 PKUSEGSCORES = None
 CHSEG = None
+KANA_PATTERN = re.compile(r'[\u3040-\u30ff]')
+CJK_PATTERN = re.compile(r'[\u4e00-\u9fff]')
 
 def full_len(s: str):
     """
@@ -235,3 +238,13 @@ def seg_text(text: str, lang: str) -> Tuple[List, str]:
 
 def is_cjk(lang: str) -> bool:
     return lang in LANGSET_CJK
+
+
+def infer_lang(text: str, fallback_lang: str = 'English') -> str:
+    if KANA_PATTERN.search(text):
+        return '日本語'
+    if CJK_PATTERN.search(text):
+        if fallback_lang in LANGSET_CJK:
+            return fallback_lang
+        return '简体中文'
+    return 'English'

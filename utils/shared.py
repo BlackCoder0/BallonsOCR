@@ -100,6 +100,7 @@ ON_WINDOWS = sys.platform == 'win32'
 HEADLESS = False
 HEADLESS_CONTINUOUS = False
 DEBUG = False
+EXTRACT_ONLY = True
 args = None
 
 FUZZY_MATCH_IMAGE_NAME = False

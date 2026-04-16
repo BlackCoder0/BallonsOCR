@@ -40,6 +40,8 @@ def patch_module_params(cfg_param, module_params, module_name: str = ''):
     cfg_key_set = set(cfg_param.keys())
     module_key_set = set(module_params.keys())
     for ck in cfg_key_set:
+        if str(ck).startswith('__'):
+            continue
         if ck not in module_key_set:
             LOGGER.warning(f'Found invalid {module_name} config: {ck}')
             cfg_param.pop(ck)
@@ -261,20 +263,16 @@ import torch
 DEFAULT_DEVICE = 'cpu'
 AVAILABLE_DEVICES = ['cpu']
 if hasattr(torch, 'cuda') and torch.cuda.is_available():
-    DEFAULT_DEVICE = 'cuda'
-    AVAILABLE_DEVICES.append(DEFAULT_DEVICE)
+    AVAILABLE_DEVICES.append('cuda')
 if hasattr(torch, 'xpu')  and torch.xpu.is_available():
-    DEFAULT_DEVICE = 'xpu' if torch.xpu.is_available() else 'cpu'
-    AVAILABLE_DEVICES.append(DEFAULT_DEVICE)
+    AVAILABLE_DEVICES.append('xpu')
 if hasattr(torch, 'backends') and hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
-    DEFAULT_DEVICE = 'mps'
-    AVAILABLE_DEVICES.append(DEFAULT_DEVICE)
+    AVAILABLE_DEVICES.append('mps')
 
 try: 
     import torch_directml
     if hasattr(torch, 'privateuseone') and torch_directml.device_count() > 0:
         torch.dml = torch_directml
-        DEFAULT_DEVICE = f'privateuseone:{torch.dml.default_device()}'
         AVAILABLE_DEVICES += [f"privateuseone:{d}" for d in range(torch.dml.device_count())]
 except:
     # directml is not supported
@@ -320,7 +318,6 @@ TORCH_DTYPE_MAP = {
 }
 
 MODULE_SCRIPTS = {
-    'translator': {'module_dir': 'modules/translators', 'module_pattern': r'trans_(.*?).py'},
     'textdetector': {'module_dir': 'modules/textdetector', 'module_pattern': r'detector_(.*?).py'},
     'inpainter': {'module_dir': 'modules/inpaint', 'module_pattern': r'inpaint_(.*?).py'},
     'ocr': {'module_dir': 'modules/ocr', 'module_pattern': r'ocr_(.*?).py'},
@@ -360,8 +357,4 @@ def init_inpainter_registries():
 
 def init_ocr_registries():
     init_module_registries('ocr')
-
-
-def init_translator_registries():
-    init_module_registries('translator')
 

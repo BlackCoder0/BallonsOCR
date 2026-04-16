@@ -11,8 +11,6 @@ from utils import config as C
 from utils.fontformat import FontFormat, px2pt, LineSpacingType
 from .custom_widget import Widget, ColorPickerLabel, ClickableLabel, CheckableLabel, TextCheckerLabel, AlignmentChecker, QFontChecker, SizeComboBox, SizeControlLabel
 from .textitem import TextBlkItem
-from .text_advanced_format import TextAdvancedFormatPanel
-from .text_style_presets import TextStylePresetPanel
 from . import funcmaps as FM
 
 
@@ -336,47 +334,15 @@ class FontFormatPanel(Widget):
         lettersp_hlayout.addWidget(self.letterSpacingBox)
         lettersp_hlayout.setSpacing(shared.WIDGET_SPACING_CLOSE)
         
-        self.global_fontfmt_str = self.tr("Global Font Format")
-        self.textstyle_panel = TextStylePresetPanel(
-            self.global_fontfmt_str,
-            config_name='show_text_style_preset',
-            config_expand_name='expand_tstyle_panel'
-        )
-        self.textstyle_panel.active_text_style_label_changed.connect(self.on_active_textstyle_label_changed)
-        self.textstyle_panel.active_stylename_edited.connect(self.on_active_stylename_edited)
-
-        self.textadvancedfmt_panel = TextAdvancedFormatPanel(
-            self.tr('Advanced Text Format'),
-            config_name='text_advanced_format_panel',
-            config_expand_name='expand_tadvanced_panel',
-            on_format_changed=self.on_param_changed
-        )
-        color_label = self.textadvancedfmt_panel.shadow_group.color_label
-        color_label.changingColor.connect(self.changingColor)
-        color_label.colorChanged.connect(self.onColorLabelChanged)
-        color_label.apply_color.connect(self.on_apply_color)
-
-        color_label = self.textadvancedfmt_panel.gradient_group.start_picker
-        color_label.changingColor.connect(self.changingColor)
-        color_label.colorChanged.connect(self.onColorLabelChanged)
-        color_label.apply_color.connect(self.on_apply_color)
-        
-        color_label = self.textadvancedfmt_panel.gradient_group.end_picker
-        color_label.changingColor.connect(self.changingColor)
-        color_label.colorChanged.connect(self.onColorLabelChanged)
-        color_label.apply_color.connect(self.on_apply_color)
+        self.textstyle_panel = None
+        self.textadvancedfmt_panel = None
         
         self.foldTextBtn = CheckableLabel(self.tr("Unfold"), self.tr("Fold"), False)
         self.sourceBtn = TextCheckerLabel(self.tr("Source"))
-        self.transBtn = TextCheckerLabel(self.tr("Translation"))
+        self.transBtn = TextCheckerLabel(self.tr("Text"))
 
         FONTFORMAT_SPACING = 6
 
-        vl0 = QVBoxLayout()
-        vl0.addWidget(self.textstyle_panel.view_widget)
-        vl0.addWidget(self.textadvancedfmt_panel.view_widget)
-        vl0.setSpacing(0)
-        vl0.setContentsMargins(0, 0, 0, 0)
         hl1 = QHBoxLayout()
         hl1.addWidget(self.familybox)
         hl1.addWidget(self.fontsizebox)
@@ -409,7 +375,6 @@ class FontFormatPanel(Widget):
         hl4.setContentsMargins(0, 12, 0, 0)
         hl4.setSpacing(0)
 
-        self.vlayout.addLayout(vl0)
         self.vlayout.addLayout(hl1)
         self.vlayout.addLayout(hl2)
         self.vlayout.addLayout(hl3)
@@ -419,12 +384,34 @@ class FontFormatPanel(Widget):
 
         self.focusOnColorDialog = False
         C.active_format = self.global_format
+        if shared.EXTRACT_ONLY:
+            self._apply_extractor_mode()
+
+    def _apply_extractor_mode(self):
+        for widget in (
+            self.familybox,
+            self.fontsizebox,
+            self.lineSpacingLabel,
+            self.lineSpacingBox,
+            self.colorPicker,
+            self.alignBtnGroup,
+            self.formatBtnGroup,
+            self.verticalChecker,
+            self.fontStrokeLabel,
+            self.strokeWidthBox,
+            self.strokeColorPicker,
+            self.letterSpacingLabel,
+            self.letterSpacingBox,
+            self.sourceBtn,
+            self.transBtn,
+        ):
+            widget.hide()
 
     def global_mode(self):
         return id(C.active_format) == id(self.global_format)
     
     def active_text_style_label(self):
-        return self.textstyle_panel.active_text_style_label
+        return None
 
     def active_text_style_format(self):
         af = self.active_text_style_label()
@@ -445,10 +432,7 @@ class FontFormatPanel(Widget):
             func(param_name, value, C.active_format, is_global=False, blkitems=self.textblk_item, set_focus=True, **func_kwargs)
 
     def update_text_style_label(self):
-        if self.global_mode():
-            active_text_style_label = self.active_text_style_label()
-            if active_text_style_label is not None:
-                active_text_style_label.update_style(self.global_format)
+        return
 
     def changingColor(self):
         self.focusOnColorDialog = True
@@ -473,7 +457,7 @@ class FontFormatPanel(Widget):
     def set_active_format(self, font_format: FontFormat, multi_size=False):
         C.active_format = font_format
         self.familybox.blockSignals(True)
-        font_size = round(font_format.font_size, 1)
+        font_size = max(1.0, round(font_format.font_size, 1))
         if int(font_size) == font_size:
             font_size = str(int(font_size))
         else:
@@ -494,40 +478,20 @@ class FontFormatPanel(Widget):
         self.alignBtnGroup.setAlignment(font_format.alignment)
         
         self.familybox.blockSignals(False)
-        self.textadvancedfmt_panel.set_active_format(font_format)
 
     def set_globalfmt_title(self):
-        active_text_style_label = self.active_text_style_label()
-        if active_text_style_label is None:
-            self.textstyle_panel.setTitle(self.global_fontfmt_str)
-        else:
-            title = self.global_fontfmt_str + ' - ' + active_text_style_label.fontfmt._style_name
-            valid_title = self.textstyle_panel.elidedText(title)
-            self.textstyle_panel.setTitle(valid_title)
+        return
 
 
     def deactivate_style_label(self):
-        if self.active_text_style_label() is not None:
-            self.textstyle_panel.on_stylelabel_activated(False)
+        return
 
 
     def on_active_textstyle_label_changed(self):
-        '''
-        merge activate textstyle into global format
-        '''
-        active_text_style_label = self.active_text_style_label()
-        if active_text_style_label is not None:
-            updated_keys = self.global_format.merge(active_text_style_label.fontfmt, compare=True)
-            if self.global_mode() and len(updated_keys) > 0:
-                self.set_active_format(self.global_format)
-            self.set_globalfmt_title()
-        else:
-            if self.global_mode():
-                self.set_globalfmt_title()
+        return
 
     def on_active_stylename_edited(self):
-        if self.global_mode():
-            self.set_globalfmt_title()
+        return
 
     def set_textblk_item(self, textblk_item: TextBlkItem = None, multi_select:bool=False):
         if textblk_item is None:
@@ -546,7 +510,6 @@ class FontFormatPanel(Widget):
                     self.textblk_item.fontformat = copy.deepcopy(C.active_format)
                 self.textblk_item = None
                 self.set_active_format(self.global_format, multi_select)
-                self.set_globalfmt_title()
             
         else:
             if not self.restoring_textblk:
@@ -561,4 +524,3 @@ class FontFormatPanel(Widget):
                 self.textblk_item = textblk_item
                 multi_size = not textblk_item.isEditing() and textblk_item.isMultiFontSize()
                 self.set_active_format(blk_fmt, multi_size)
-                self.textstyle_panel.setTitle(f'TextBlock #{textblk_item.idx}')

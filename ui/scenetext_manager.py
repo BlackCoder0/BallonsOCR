@@ -20,7 +20,7 @@ from .text_panel import FontFormatPanel
 from utils.config import pcfg
 from utils import shared
 from utils.imgproc_utils import extract_ballon_region, rotate_polygons, get_block_mask
-from utils.text_processing import seg_text, is_cjk
+from utils.text_processing import seg_text, is_cjk, infer_lang
 from utils.text_layout import layout_text
 
 
@@ -345,7 +345,6 @@ class SceneTextManager(QObject):
         self.textEditList.selection_changed.connect(self.on_transwidget_selection_changed)
         self.textEditList.rearrange_blks.connect(self.on_rearrange_blks)
         self.formatpanel = textpanel.formatpanel
-        self.formatpanel.textstyle_panel.apply_fontfmt.connect(self.onFormatTextblks)
 
         self.imgtrans_proj = self.canvas.imgtrans_proj
         self.textblk_item_list: List[TextBlkItem] = []
@@ -355,6 +354,9 @@ class SceneTextManager(QObject):
         self.hovering_transwidget : TransTextEdit = None
 
         self.prev_blkitem: TextBlkItem = None
+
+    def _preferred_pair_editor(self, idx: int) -> SourceTextEdit:
+        return self.pairwidget_list[idx].e_source
 
     def on_switch_textitem(self, switch_delta: int, key_event: QKeyEvent = None, current_editing_widget: Union[SourceTextEdit, TransTextEdit] = None):
         n_blk = len(self.textblk_item_list)
@@ -389,7 +391,7 @@ class SceneTextManager(QObject):
                 self.canvas.block_selection_signal = False
                 self.canvas.gv.ensureVisible(blk)
                 self.txtblkShapeControl.setBlkItem(blk)
-                edit = self.pairwidget_list[tgt_idx].e_trans
+                edit = self._preferred_pair_editor(tgt_idx)
                 self.changeHoveringWidget(edit)
                 self.textEditList.set_selected_list([blk.idx])
             else:
@@ -454,16 +456,19 @@ class SceneTextManager(QObject):
             blk_item = blk
             blk_item.idx = len(self.textblk_item_list)
         else:
-            translation = ''
+            if shared.EXTRACT_ONLY:
+                blk.render_text = ''
+                blk.rich_text = ''
+            render_text = ''
             if self.auto_textlayout_flag and not blk.vertical:
-                translation = blk.translation
-                blk.translation = ''
+                render_text = blk.render_text
+                blk.render_text = ''
             blk_item = TextBlkItem(blk, len(self.textblk_item_list), show_rect=self.canvas.textblock_mode)
-            if translation:
-                blk.translation = translation
-                rst = self.layout_textblk(blk_item, text=translation)
+            if render_text:
+                blk.render_text = render_text
+                rst = self.layout_textblk(blk_item, text=render_text)
                 if rst is None:
-                    blk_item.setPlainText(translation)
+                    blk_item.setPlainText(render_text)
         self.addTextBlkItem(blk_item)
 
         pair_widget = TransPairWidget(blk, len(self.pairwidget_list), pcfg.fold_textarea)
@@ -563,8 +568,7 @@ class SceneTextManager(QObject):
         self.canvas.editing_textblkitem = blk_item
         self.formatpanel.set_textblk_item(blk_item)
         self.txtblkShapeControl.startEditing()
-        e_trans = self.pairwidget_list[blk_item.idx].e_trans
-        self.changeHoveringWidget(e_trans)
+        self.changeHoveringWidget(self._preferred_pair_editor(blk_item.idx))
 
     def changeHoveringWidget(self, edit: SourceTextEdit):
         if self.hovering_transwidget is not None and self.hovering_transwidget != edit:
@@ -586,7 +590,7 @@ class SceneTextManager(QObject):
         if len(selections) > 1:
             for item in selections:
                 item.oldPos = item.pos()
-        self.changeHoveringWidget(self.pairwidget_list[blk_id].e_trans)
+        self.changeHoveringWidget(self._preferred_pair_editor(blk_id))
 
     def onTextBlkItemEndEdit(self, blk_id: int):
         self.canvas.editing_textblkitem = None
@@ -732,9 +736,6 @@ class SceneTextManager(QObject):
         if img is None:
             return
 
-        src_is_cjk = is_cjk(pcfg.module.translate_source)
-        tgt_is_cjk = is_cjk(pcfg.module.translate_target)
-
         # disable for vertical writing
         if blkitem.blk.vertical:
             return
@@ -757,6 +758,14 @@ class SceneTextManager(QObject):
         if not text.strip():
             return
 
+        source_lang = pcfg.module.source_lang
+        layout_lang = pcfg.module.layout_lang
+        if layout_lang == 'Auto':
+            layout_lang = infer_lang(text, fallback_lang=source_lang)
+
+        src_is_cjk = is_cjk(source_lang)
+        layout_is_cjk = is_cjk(layout_lang)
+
         if mask is None:
             im_h, im_w = img.shape[:2]
             bounding_rect = blkitem.absBoundingRect(max_h=im_h, max_w=im_w)
@@ -765,7 +774,7 @@ class SceneTextManager(QObject):
                 if len(self.pairwidget_list) > blkitem.idx:
                     self.pairwidget_list[blkitem.idx].e_trans.setPlainText(text)
                 return
-            if tgt_is_cjk:
+            if layout_is_cjk:
                 max_enlarge_ratio = 2.5
             else:
                 max_enlarge_ratio = 3
@@ -774,14 +783,14 @@ class SceneTextManager(QObject):
         else:
             mask_xyxy = [bounding_rect[0], bounding_rect[1], bounding_rect[0]+bounding_rect[2], bounding_rect[1]+bounding_rect[3]]
         
-        words, delimiter = seg_text(text, pcfg.module.translate_target)
+        words, delimiter = seg_text(text, layout_lang)
         if len(words) < 1:
             return
 
         wl_list = get_words_length_list(QFontMetricsF(blk_font), words)
         text_w, text_h = text_size_func(text)
         text_area = text_w * text_h
-        if tgt_is_cjk:
+        if layout_is_cjk:
             line_height = int(round(fmt.line_spacing * text_size_func('X木')[1]))
         else:
             line_height = int(round(fmt.line_spacing * text_size_func('X')[1]))
@@ -855,7 +864,7 @@ class SceneTextManager(QObject):
             0, 
             max_central_width,
             src_is_cjk=src_is_cjk,
-            tgt_is_cjk=tgt_is_cjk,
+            tgt_is_cjk=layout_is_cjk,
             ref_src_lines=ref_src_lines
         )
 
@@ -966,7 +975,7 @@ class SceneTextManager(QObject):
         if self.is_editting():
             textitm = self.editingTextItem()
             textitm.endEdit()
-            self.pairwidget_list[textitm.idx].e_trans.setHoverEffect(False)
+            self._preferred_pair_editor(textitm.idx).setHoverEffect(False)
             self.textEditList.clearAllSelected()
 
         if idx < len(self.textblk_item_list):
@@ -984,6 +993,8 @@ class SceneTextManager(QObject):
         self.canvas.undo_textedit()
 
     def on_show_select_menu(self, pos: QPoint, selected_text: str):
+        if shared.EXTRACT_ONLY:
+            return
         if pcfg.textselect_mini_menu:
             if not selected_text:
                 if self.selectext_minimenu.isVisible():
@@ -1085,21 +1096,26 @@ class SceneTextManager(QObject):
             return
         cbl.clear()
         for blk_item, trans_pair in zip(self.textblk_item_list, self.pairwidget_list):
-            if not blk_item.document().isEmpty():
+            if shared.EXTRACT_ONLY:
+                blk_item.blk.rich_text = ''
+                blk_item.blk.render_text = ''
+            elif not blk_item.document().isEmpty():
                 blk_item.blk.rich_text = blk_item.toHtml()
-                blk_item.blk.translation = blk_item.toPlainText()
+                blk_item.blk.render_text = blk_item.toPlainText()
             else:
                 blk_item.blk.rich_text = ''
-                blk_item.blk.translation = ''
+                blk_item.blk.render_text = ''
             blk_item.blk.text = [trans_pair.e_source.toPlainText()]
             blk_item.blk._bounding_rect = blk_item.absBoundingRect()
             blk_item.updateBlkFormat()
             cbl.append(blk_item.blk)
 
-    def updateTranslation(self):
+    def updateRenderText(self):
+        if shared.EXTRACT_ONLY:
+            return
         for blk_item, transwidget in zip(self.textblk_item_list, self.pairwidget_list):
-            transwidget.e_trans.setPlainText(blk_item.blk.translation)
-            blk_item.setPlainText(blk_item.blk.translation)
+            transwidget.e_trans.setPlainText(blk_item.blk.render_text)
+            blk_item.setPlainText(blk_item.blk.render_text)
         self.canvas.clear_text_stack()
 
     def showTextblkItemRect(self, draw_rect: bool):

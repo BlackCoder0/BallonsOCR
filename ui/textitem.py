@@ -220,17 +220,15 @@ class TextBlkItem(QGraphicsTextItem):
         if blk.angle != 0:
             self.setRotation(blk.angle)
         
-        set_char_fmt = False
-        if blk.translation:
-            set_char_fmt = True
+        set_char_fmt = bool(blk.render_text)
 
         font_fmt = blk.fontformat
         if set_format:
             self.set_fontformat(font_fmt, set_char_format=set_char_fmt, set_stroke_width=False, set_effect=False)
 
         if not blk.rich_text:
-            if blk.translation:
-                self.setPlainText(blk.translation)
+            if blk.render_text:
+                self.setPlainText(blk.render_text)
         else:
             self.setHtml(blk.rich_text)
             self.setLetterSpacing(font_fmt.letter_spacing, repaint_background=False)

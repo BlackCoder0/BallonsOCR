@@ -2,15 +2,13 @@ import numpy as np
 import os.path as osp
 import traceback
 
-from qtpy.QtCore import Qt, Signal, QUrl, QThread
+from qtpy.QtCore import Qt, Signal, QThread
 from qtpy.QtGui import QImage, QPixmap
-from qtpy.QtWidgets import QDialog, QMessageBox, QFileDialog
 
 from utils.logger import logger as LOGGER
 from utils.io_utils import imread, imwrite
 from utils.message import create_error_dialog
 from utils.proj_imgtrans import ProjImgTrans
-from .custom_widget import ProgressMessageBox
 from .misc import pixmap2ndarray
 
 
@@ -76,105 +74,6 @@ class ImgSaveThread(ThreadBase):
                     self.on_exec_failed()
                     create_error_dialog(e, self._thread_error_msg, self._thread_exception_type)
 
-
-
-
-class ImgTransProjFileIOThread(ThreadBase):
-
-    fin_page = Signal()
-    fin_io = Signal()
-
-    _thread_exception_type = 'ImgTransProjFileIOThread'
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.proj: ProjImgTrans = None
-        self.fin_counter = 0
-        self.num_pages = 0
-        self.fin_page.connect(self.on_fin_page)
-        self.progress_bar = ProgressMessageBox('task')
-
-    def on_fin_page(self):
-        self.fin_counter += 1
-        progress = int(self.fin_counter / self.num_pages * 100)
-        self.progress_bar.updateTaskProgress(progress)
-        if self.fin_counter == self.num_pages:
-            self.progress_bar.hide()
-
-    def on_exec_failed(self):
-        self.progress_bar.hide()
-
-
-class ExportDocThread(ImgTransProjFileIOThread):
-
-    _thread_error_msg = 'Failed to export Doc'
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.progress_bar.setTaskName(self.tr('Export as doc...'))
-
-    def exportAsDoc(self, proj: ProjImgTrans):
-        doc_path = proj.doc_path()
-        if osp.exists(doc_path):
-            msg = QMessageBox()
-            msg.setText(self.tr('Overwrite ') + doc_path + '?')
-            msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-            ret = msg.exec_()
-            if ret == QMessageBox.StandardButton.No:
-                return
-        if self.job is None:
-            self.proj = proj
-            self.job = self._export_as_doc
-            self.start()
-            self.progress_bar.updateTaskProgress(0)
-            self.progress_bar.show()
-
-    def _export_as_doc(self):
-        if self.proj is None:
-            return
-        self.fin_counter = 0
-        self.num_pages = self.proj.num_pages
-        if self.num_pages > 0:
-            self.proj.dump_doc(fin_page_signal=self.fin_page)
-        self.proj = None
-        self.progress_bar.hide()
-        self.fin_io.emit()
-
-
-class ImportDocThread(ImgTransProjFileIOThread):
-
-    _thread_error_msg = 'Failed to import Doc'
-
-    def __init__(self, parent, *args, **kwargs):
-        super().__init__(parent, *args, **kwargs)
-        self.progress_bar.setTaskName(self.tr('Import doc...'))
-        self.doc_path = None
-    
-    def importDoc(self, proj: ProjImgTrans):
-        dialog = QFileDialog()
-        dialog.setDefaultSuffix('.docx')
-        url = QUrl(proj.directory)
-        doc_path = dialog.getOpenFileUrl(self.parent(), self.tr('Import *.docx'), directory=url, filter="Microsoft Word Documents (*.doc *.docx)")[0].toLocalFile()
-        if osp.exists(doc_path) and self.job is None:
-            self.proj = proj
-            self.job = self._import_doc
-            self.doc_path = doc_path
-            self.start()
-            self.progress_bar.updateTaskProgress(0)
-            self.progress_bar.show()
-
-    def _import_doc(self):
-        if self.proj is None:
-            return
-        self.fin_counter = 0
-        self.num_pages = self.proj.num_pages
-        self.proj.load_doc(self.doc_path, fin_page_signal=self.fin_page)
-        self.proj = None
-        self.progress_bar.hide()
-        self.fin_io.emit()
-
-    
-
 class MergeThread(ThreadBase):
     """区域合并后台线程"""
     progress_changed = Signal(int, int)  # (当前进度, 总数)
@@ -227,7 +126,7 @@ class MergeThread(ThreadBase):
             return
         
         if 'pages' not in data:
-            LOGGER.error('不是 BallonsTranslator 格式的 JSON 文件')
+            LOGGER.error('不是提取器项目 JSON 文件')
             self.merge_finished.emit(0, total)
             return
         

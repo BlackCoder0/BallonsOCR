@@ -236,10 +236,12 @@ class PageSearchWidget(Widget):
         self.regex_toggle.clicked.connect(self.on_regex_clicked)
 
         self.range_combobox = QComboBox(self)
-        self.range_combobox.addItems([self.tr('Translation'), self.tr('Source'), self.tr('All')])
+        self.range_combobox.addItem(self.tr('Source'))
         self.range_combobox.currentIndexChanged.connect(self.on_range_changed)
         self.range_label = QLabel(self)
         self.range_label.setText(self.tr('Range'))
+        self.range_combobox.hide()
+        self.range_label.hide()
 
         self.replace_editor = SearchEditor(self)
         self.replace_editor.setPlaceholderText(self.tr('Replace'))
@@ -428,20 +430,8 @@ class PageSearchWidget(Widget):
             self.updateCounterText()
             return
 
-        search_range = self.range_combobox.currentIndex()
-        search_src = search_range == 1
-        search_trans = search_range == 0
-
-        if search_src:
-            for pw in self.pairwidget_list:
-                self.find_page_text(pw.e_source)
-        elif search_trans:
-            for pw in self.pairwidget_list:
-                self.find_page_text(pw.e_trans)
-        else:
-            for pw in self.pairwidget_list:
-                self.find_page_text(pw.e_source)
-                self.find_page_text(pw.e_trans)
+        for pw in self.pairwidget_list:
+            self.find_page_text(pw.e_source)
 
         if len(self.search_counter_list) > 0:
             self.counter_sum = sum(self.search_counter_list)
@@ -496,11 +486,6 @@ class PageSearchWidget(Widget):
         return self.get_result_edit_index(self.current_edit)
 
     def setCurrentEditor(self, edit: SourceTextEdit):
-        
-        if type(edit) == SourceTextEdit and self.range_combobox.currentIndex() == 0 \
-            or type(edit) == TransPairWidget and self.range_combobox.currentIndex() == 1:
-            edit = None
-
         old_idx = self.current_edit_index()
         self.current_edit = edit
 
@@ -673,7 +658,7 @@ class PageSearchWidget(Widget):
         self.page_search()
 
     def on_range_changed(self):
-        pcfg.fsearch_range = self.range_combobox.currentIndex()
+        pcfg.fsearch_range = 1
         self.page_search()
 
     def on_commit_search(self):
@@ -691,16 +676,11 @@ class PageSearchWidget(Widget):
     def on_new_textblk(self, idx: int):
         if self.isVisible():
             pair_widget = self.pairwidget_list[idx]
-            pair_widget.e_trans.text_changed.connect(self.on_nonrst_edit_text_changed)
             pair_widget.e_source.text_changed.connect(self.on_nonrst_edit_text_changed)
 
     def on_nonrst_edit_text_changed(self):
         edit: SourceTextEdit = self.sender()
         if not self.isVisible() or edit.pre_editing or edit in self.search_rstedit_list:
-            return
-
-        if type(edit) == SourceTextEdit and self.range_combobox.currentIndex() == 0 \
-            or type(edit) == TransPairWidget and self.range_combobox.currentIndex() == 1:
             return
 
         text = self.search_editor.toPlainText()
@@ -714,9 +694,6 @@ class PageSearchWidget(Widget):
             for e in self.search_rstedit_list:
                 if e.idx < edit.idx:
                     insert_idx += 1
-                elif e.idx == edit.idx:
-                    if type(edit) == TransTextEdit:
-                        insert_idx += 1
 
             self.search_counter_list.insert(insert_idx, found_counter)
             self.search_rstedit_list.insert(insert_idx, edit)

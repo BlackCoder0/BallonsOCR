@@ -172,13 +172,11 @@ class ImgtransProgressMessageBox(ProgressMessageBox):
         self.detect_bar = TaskProgressBar(self.tr('Detecting: '), True, self)
         self.ocr_bar = TaskProgressBar(self.tr('OCR: '), True, self)
         self.inpaint_bar = TaskProgressBar(self.tr('Inpainting: '), True, self)
-        self.translate_bar = TaskProgressBar(self.tr('Translating: '), True, self)
 
         layout = self.layout()
         layout.addWidget(self.detect_bar)
         layout.addWidget(self.ocr_bar)
         layout.addWidget(self.inpaint_bar)
-        layout.addWidget(self.translate_bar)
         
         # 添加停止按钮
         self.stop_button = QPushButton(self.tr('Stop'), self)
@@ -207,14 +205,10 @@ class ImgtransProgressMessageBox(ProgressMessageBox):
     def updateInpaintProgress(self, value: int, msg: str = ''):
         self.inpaint_bar.updateProgress(value, msg)
 
-    def updateTranslateProgress(self, value: int, msg: str = ''):
-        self.translate_bar.updateProgress(value, msg)
-    
     def zero_progress(self):
         self.updateDetectProgress(0)
         self.updateOCRProgress(0)
         self.updateInpaintProgress(0)
-        self.updateTranslateProgress(0)
         # 重置停止按钮状态
         self.stop_button.setEnabled(True)
         self.stop_button.setText(self.tr('Stop'))
@@ -222,11 +216,9 @@ class ImgtransProgressMessageBox(ProgressMessageBox):
     def show_all_bars(self):
         self.detect_bar.show()
         self.ocr_bar.show()
-        self.translate_bar.show()
         self.inpaint_bar.show()
 
     def hide_all_bars(self):
         self.detect_bar.hide()
         self.ocr_bar.hide()
-        self.translate_bar.hide()
         self.inpaint_bar.hide()

@@ -521,7 +521,7 @@ class TextEditListScrollArea(QScrollArea):
         self.dragStartPosition = None
 
         self.source_visible = True
-        self.trans_visible = True
+        self.trans_visible = False
 
         self.drag_to_pos: int = -1
 
@@ -730,7 +730,7 @@ class TextEditListScrollArea(QScrollArea):
         if check_changed:
             self.selection_changed.emit()
             if pwc.checked:
-                pwc.e_trans.focus_in.emit(pwc.idx)
+                pwc.e_source.focus_in.emit(pwc.idx)
 
     def set_selected_list(self, selection_indices: List):
         self.clearDrag()

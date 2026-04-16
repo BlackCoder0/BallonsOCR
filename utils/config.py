@@ -13,8 +13,7 @@ class RunStatus:
     FIN_DET = 1
     FIN_OCR = 2
     FIN_INPAINT = 4
-    FIN_TRANSLATE = 8
-    FIN_ALL = 15
+    FIN_ALL = 7
 
 
 @nested_dataclass
@@ -22,26 +21,21 @@ class ModuleConfig(Config):
     textdetector: str = 'ctd'
     ocr: str = "mit48px"
     inpainter: str = 'lama_large_512px'
-    translator: str = "google"
     enable_detect: bool = True
     keep_exist_textlines: bool = False
     enable_ocr: bool = True
-    enable_translate: bool = True
-    enable_inpaint: bool = True
+    enable_inpaint: bool = False
     # 是否在 OCR 后进行字体检测（默认不启用）
     ocr_font_detect: bool = False
     textdetector_params: Dict = field(default_factory=lambda: dict())
     ocr_params: Dict = field(default_factory=lambda: dict())
-    translator_params: Dict = field(default_factory=lambda: dict())
     inpainter_params: Dict = field(default_factory=lambda: dict())
-    translate_source: str = '日本語'
-    translate_target: str = '简体中文'
-    translate_by_textblock: bool = False
-
+    source_lang: str = '日本語'
+    layout_lang: str = 'Auto'
     check_need_inpaint: bool = True
     load_model_on_demand: bool = False
     empty_runcache: bool = False
-    finish_code: int = 15
+    finish_code: int = 7
 
     def get_params(self, module_key: str, for_saving=False) -> dict:
         d = self[module_key + '_params']
@@ -68,7 +62,6 @@ class ModuleConfig(Config):
         params.ocr_params = self.get_params('ocr', for_saving=True)
         params.inpainter_params = self.get_params('inpainter', for_saving=True)
         params.textdetector_params = self.get_params('textdetector', for_saving=True)
-        params.translator_params = self.get_params('translator', for_saving=True)
         if to_dict:
             return params.__dict__
         return params
@@ -79,14 +72,12 @@ class ModuleConfig(Config):
         elif idx == 1:
             return self.enable_ocr
         elif idx == 2:
-            return self.enable_translate
-        elif idx == 3:
             return self.enable_inpaint
         else:
             raise Exception(f'not supported stage idx: {idx}')
         
     def all_stages_disabled(self):
-        return (self.enable_detect or self.enable_ocr or self.enable_translate or self.enable_inpaint) is False
+        return (self.enable_detect or self.enable_ocr or self.enable_inpaint) is False
 
     def __post_init__(self):
         self.update_finish_code()
@@ -94,8 +85,7 @@ class ModuleConfig(Config):
     def update_finish_code(self):
         self.finish_code = self.enable_detect * RunStatus.FIN_DET + \
             self.enable_ocr * RunStatus.FIN_OCR + \
-                self.enable_translate * RunStatus.FIN_TRANSLATE + \
-                    self.enable_inpaint * RunStatus.FIN_INPAINT
+                self.enable_inpaint * RunStatus.FIN_INPAINT
         
 
 @nested_dataclass
@@ -142,23 +132,21 @@ class ProgramConfig(Config):
     fsearch_case: bool = False
     fsearch_whole_word: bool = False
     fsearch_regex: bool = False
-    fsearch_range: int = 0
+    fsearch_range: int = 1
     gsearch_case: bool = False
     gsearch_whole_word: bool = False
     gsearch_regex: bool = False
-    gsearch_range: int = 0
+    gsearch_range: int = 1
 
     darkmode: bool = False
-    textselect_mini_menu: bool = True
+    textselect_mini_menu: bool = False
     fold_textarea: bool = False
     show_source_text: bool = True
-    show_trans_text: bool = True
+    show_trans_text: bool = False
     saladict_shortcut: str = "Alt+S"
     search_url: str = "https://www.google.com/search?q="
     ocr_sublist: List = field(default_factory=lambda: list())
     restore_ocr_empty: bool = False
-    pre_mt_sublist: List = field(default_factory=lambda: list())
-    mt_sublist: List = field(default_factory=lambda: list())
     display_lang: str = field(default_factory=lambda: shared.DEFAULT_DISPLAY_LANG) # to always apply shared.DEFAULT_DISPLAY_LANG
     imgsave_quality: int = 100
     imgsave_ext: str = '.png'
@@ -189,20 +177,7 @@ class ProgramConfig(Config):
                 if 'ocr_setup_params' in dl:
                     ocr_params = dl.pop('ocr_setup_params')
                     dl['ocr_params'] = ocr_params
-                if 'translator_setup_params' in dl:
-                    translator_params = dl.pop('translator_setup_params')
-                    dl['translator_params'] = translator_params
                 config_dict['module'] = dl
-
-        if 'module' in config_dict:
-            module_cfg = config_dict['module']
-            trans_params = module_cfg['translator_params']
-            repl_pairs = {'baidu': 'Baidu', 'caiyun': 'Caiyun', 'chatgpt': 'ChatGPT', 'Deepl': 'DeepL', 'papago': 'Papago'}
-            for k, i in repl_pairs.items():
-                if k in trans_params:
-                    trans_params[i] = trans_params.pop(k)
-            if module_cfg['translator'] in repl_pairs:
-                module_cfg['translator'] = repl_pairs[module_cfg['translator']]
 
         return ProgramConfig(**config_dict)
     
