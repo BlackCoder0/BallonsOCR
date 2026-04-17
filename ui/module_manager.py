@@ -14,7 +14,7 @@ from utils.imgproc_utils import enlarge_window, get_block_mask
 from utils.io_utils import imread, text_is_empty
 from modules.base import BaseModule, soft_empty_cache
 from modules import INPAINTERS, TEXTDETECTORS, OCR, \
-    GET_VALID_TEXTDETECTORS, GET_VALID_INPAINTERS, GET_VALID_OCR, \
+    GET_AVAILABLE_TEXTDETECTORS, GET_VALID_INPAINTERS, GET_AVAILABLE_OCR, \
     InpainterBase, TextDetectorBase, OCRBase, merge_config_module_params
 from utils.textblock import TextBlock, sort_regions
 from utils import shared
@@ -500,13 +500,13 @@ class ModuleManager(QObject):
             inpainter_panel.needInpaintChecker.checker.setChecked(cfg_module.check_need_inpaint)
 
         self.textdetect_panel = textdetector_panel = config_panel.detect_config_panel
-        textdetector_params = merge_config_module_params(cfg_module.textdetector_params, GET_VALID_TEXTDETECTORS(), TEXTDETECTORS.get)
+        textdetector_params = merge_config_module_params(cfg_module.textdetector_params, GET_AVAILABLE_TEXTDETECTORS(), TEXTDETECTORS.get)
         textdetector_panel.addModulesParamWidgets(textdetector_params)
         textdetector_panel.paramwidget_edited.connect(self.on_textdetectorparam_edited)
         textdetector_panel.detector_changed.connect(self.setTextDetector)
 
         self.ocr_panel = ocr_panel = config_panel.ocr_config_panel
-        ocr_params = merge_config_module_params(cfg_module.ocr_params, GET_VALID_OCR(), OCR.get)
+        ocr_params = merge_config_module_params(cfg_module.ocr_params, GET_AVAILABLE_OCR(), OCR.get)
         ocr_panel.addModulesParamWidgets(ocr_params)
         ocr_panel.paramwidget_edited.connect(self.on_ocrparam_edited)
         ocr_panel.ocr_changed.connect(self.setOCR)

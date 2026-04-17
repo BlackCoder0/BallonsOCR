@@ -94,7 +94,7 @@ def _stariver_detector_ready(detector_params):
 def apply_extract_mode_defaults():
     from utils.config import pcfg
     from utils.logger import logger as LOGGER
-    from modules import OCR, TEXTDETECTORS, GET_VALID_OCR, GET_VALID_TEXTDETECTORS, merge_config_module_params
+    from modules import OCR, TEXTDETECTORS, GET_AVAILABLE_OCR, GET_AVAILABLE_TEXTDETECTORS, merge_config_module_params
 
     pcfg.module.enable_detect = True
     pcfg.module.enable_ocr = True
@@ -106,7 +106,7 @@ def apply_extract_mode_defaults():
     pcfg.imgtrans_paintmode = False
     pcfg.let_autolayout_flag = False
 
-    available_detectors = GET_VALID_TEXTDETECTORS()
+    available_detectors = GET_AVAILABLE_TEXTDETECTORS()
     pcfg.module.textdetector_params = merge_config_module_params(
         pcfg.module.textdetector_params,
         available_detectors,
@@ -131,7 +131,7 @@ def apply_extract_mode_defaults():
             )
         pcfg.module.textdetector = preferred_detector
 
-    available_ocr = GET_VALID_OCR()
+    available_ocr = GET_AVAILABLE_OCR()
     pcfg.module.ocr_params = merge_config_module_params(pcfg.module.ocr_params, available_ocr, OCR.get)
     # Prefer OCR backends that normalize vertical manga text regions before recognition.
     preferred_ocr_order = [

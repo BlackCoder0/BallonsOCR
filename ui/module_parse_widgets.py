@@ -1,6 +1,6 @@
 from typing import List, Callable
 
-from modules import GET_VALID_TEXTDETECTORS, GET_VALID_OCR, DEFAULT_DEVICE, GPUINTENSIVE_SET
+from modules import GET_AVAILABLE_TEXTDETECTORS, GET_AVAILABLE_OCR, DEFAULT_DEVICE, GPUINTENSIVE_SET
 from utils.logger import logger as LOGGER
 from .custom_widget import ConfigComboBox, ParamComboBox, ParamNameLabel
 from utils.shared import CONFIG_COMBOBOX_LONG, size2width, CONFIG_COMBOBOX_SHORT, CONFIG_COMBOBOX_HEIGHT
@@ -210,6 +210,25 @@ def get_param_display_name(param_key: str, param_dict: dict = None):
     return localize_param_text(param_key)
 
 
+SMART_OCR_SELECTOR_KEYS = {'vertical_ocr', 'horizontal_ocr', 'fallback_ocr', 'page_ocr'}
+
+
+def get_selector_options(param_key: str, param_dict: dict) -> list:
+    options = list(param_dict.get('options', []))
+    if param_key not in SMART_OCR_SELECTOR_KEYS:
+        return options
+
+    available_ocr = GET_AVAILABLE_OCR()
+    filtered_options = []
+    for option in options:
+        if option == 'horizontal_ocr' and param_key == 'page_ocr':
+            filtered_options.append(option)
+            continue
+        if option in available_ocr:
+            filtered_options.append(option)
+    return filtered_options
+
+
 class ParamPushButton(QPushButton):
     paramwidget_edited = Signal(str, str)
     def __init__(self, param_key: str, param_dict: dict = None, *args, **kwargs):
@@ -277,8 +296,9 @@ class ParamWidget(QWidget):
                     else:
                         size = size2width(param_size)
 
+                    options = get_selector_options(param_key, param_dict)
                     param_widget = ParamComboBox(
-                        param_key, param_dict['options'], size=size, scrollWidget=scrollWidget, flush_btn=flush_btn, path_selector=path_selector)
+                        param_key, options, size=size, scrollWidget=scrollWidget, flush_btn=flush_btn, path_selector=path_selector)
 
                     param_widget.setCurrentText(str(value))
                     param_widget.setEditable(param_dict.get('editable', False))
@@ -453,7 +473,7 @@ class ModuleConfigParseWidget(QWidget):
 
 class TextDetectConfigPanel(ModuleConfigParseWidget):
     def __init__(self, module_name: str, scrollWidget: QWidget = None, *args, **kwargs) -> None:
-        super().__init__(module_name, GET_VALID_TEXTDETECTORS, scrollWidget = scrollWidget, *args, **kwargs)
+        super().__init__(module_name, GET_AVAILABLE_TEXTDETECTORS, scrollWidget = scrollWidget, *args, **kwargs)
         self.detector_changed = self.module_changed
         self.setDetector = self.setModule
         self.keep_existing_checker = QCheckBox(text=self.tr('保留现有文本线'))
@@ -462,7 +482,7 @@ class TextDetectConfigPanel(ModuleConfigParseWidget):
 
 class OCRConfigPanel(ModuleConfigParseWidget):
     def __init__(self, module_name: str, scrollWidget: QWidget = None, *args, **kwargs) -> None:
-        super().__init__(module_name, GET_VALID_OCR, scrollWidget = scrollWidget, *args, **kwargs)
+        super().__init__(module_name, GET_AVAILABLE_OCR, scrollWidget = scrollWidget, *args, **kwargs)
         self.ocr_changed = self.module_changed
         self.setOCR = self.setModule
         self.restoreEmptyOCRChecker = QCheckBox(self.tr('当 OCR 返回空文本时，删除并还原对应区域。'), self)

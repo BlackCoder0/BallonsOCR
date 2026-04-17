@@ -16,7 +16,7 @@ from utils.logger import logger as LOGGER
 from utils.textblock import TextBlock, TextAlignment
 from utils import shared
 from utils.message import create_error_dialog, create_info_dialog
-from modules import GET_VALID_TEXTDETECTORS, GET_VALID_OCR
+from modules import GET_AVAILABLE_TEXTDETECTORS, GET_AVAILABLE_OCR
 from .misc import parse_stylesheet, set_html_family, QKEY
 from utils.config import ProgramConfig, pcfg, save_config, text_styles, save_text_styles, load_textstyle_from, FontFormat
 from utils.proj_imgtrans import ProjImgTrans
@@ -263,8 +263,8 @@ class MainWindow(mainwindow_cls):
             pcfg.imgtrans_paintmode = False
 
         self.bottomBar.originalSlider.setValue(int(pcfg.original_transparency * 100))
-        self.bottomBar.ocr_selector.selector.addItems(GET_VALID_OCR())
-        self.bottomBar.textdet_selector.selector.addItems(GET_VALID_TEXTDETECTORS())
+        self.bottomBar.ocr_selector.selector.addItems(GET_AVAILABLE_OCR())
+        self.bottomBar.textdet_selector.selector.addItems(GET_AVAILABLE_TEXTDETECTORS())
         self.bottomBar.textdet_selector.selector.currentTextChanged.connect(self.on_textdet_changed)
         self.bottomBar.textdet_selector.cfg_clicked.connect(self.to_detect_config)
         self.bottomBar.ocr_selector.cfg_clicked.connect(self.to_ocr_config)
@@ -1036,13 +1036,13 @@ class MainWindow(mainwindow_cls):
     def on_textdet_changed(self):
         module = self.bottomBar.textdet_selector.selector.currentText()
         tgt_selector = self.configPanel.detect_config_panel.module_combobox
-        if tgt_selector.currentText() != module and module in GET_VALID_TEXTDETECTORS():
+        if tgt_selector.currentText() != module and module in GET_AVAILABLE_TEXTDETECTORS():
             tgt_selector.setCurrentText(module)
 
     def on_ocr_changed(self):
         module = self.bottomBar.ocr_selector.selector.currentText()
         tgt_selector = self.configPanel.ocr_config_panel.module_combobox
-        if tgt_selector.currentText() != module and module in GET_VALID_OCR():
+        if tgt_selector.currentText() != module and module in GET_AVAILABLE_OCR():
             tgt_selector.setCurrentText(module)
 
     def translateBlkitemList(self, blkitem_list: List, mode: int) -> bool:
