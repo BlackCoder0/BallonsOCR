@@ -61,17 +61,6 @@ PACK_SPECS = {
                 ("data/models/ocr_ar_48px.ckpt",),
             ),
             PackEntry(
-                "data/models/mit48pxctc_ocr.ckpt",
-                (
-                    "data/models/mit48pxctc_ocr.ckpt",
-                    "release/portable/BallonsOCR-windows-x64-portable-v1.0.1/data/models/mit48pxctc_ocr.ckpt",
-                ),
-            ),
-            PackEntry(
-                "data/alphabet-all-v5.txt",
-                ("data/alphabet-all-v5.txt",),
-            ),
-            PackEntry(
                 "data/alphabet-all-v7.txt",
                 ("data/alphabet-all-v7.txt",),
             ),
@@ -105,7 +94,6 @@ PACK_SPECS = {
 MODULE_PACK_MAP = {
     "ctd": ("core-models",),
     "mit48px": ("core-models",),
-    "mit48px_ctc": ("core-models",),
     "mit32px": ("advanced-ocr",),
     "manga_ocr": ("advanced-ocr",),
     "PaddleOCRVLManga": ("advanced-ocr",),
