@@ -1,5 +1,5 @@
 from qtpy.QtCore import Signal, Qt, QPointF, QSize, QSizeF, QLineF, QRectF
-from qtpy.QtWidgets import QGridLayout, QPushButton, QComboBox, QSizePolicy, QBoxLayout, QCheckBox, QHBoxLayout, QGraphicsView, QStackedWidget, QVBoxLayout, QLabel, QGraphicsPixmapItem, QGraphicsEllipseItem
+from qtpy.QtWidgets import QGridLayout, QPushButton, QComboBox, QSizePolicy, QBoxLayout, QCheckBox, QHBoxLayout, QGraphicsView, QStackedWidget, QVBoxLayout, QLabel, QGraphicsPixmapItem, QGraphicsEllipseItem, QWidget
 from qtpy.QtGui import QPen, QColor, QCursor, QPainter, QPixmap, QBrush, QFontMetrics
 
 from typing import Union, Tuple, List
@@ -13,7 +13,6 @@ from utils.config import pcfg
 from .funcmaps import get_maskseg_method
 from .module_manager import ModuleManager
 from .image_edit import ImageEditMode, PenShape, PixmapItem, StrokeImgItem
-from .configpanel import InpaintConfigPanel
 from .custom_widget import Widget, SeparatorWidget, PaintQSlider, ColorPickerLabel
 from .canvas import Canvas
 from .misc import ndarray2pixmap
@@ -62,7 +61,7 @@ class InpaintPanel(Widget):
 
     thicknessChanged = Signal(int)
 
-    def __init__(self, inpainter_panel: InpaintConfigPanel, *args, **kwargs) -> None:
+    def __init__(self, inpainter_panel: QWidget = None, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         self.thicknessSlider = PaintQSlider()
@@ -104,11 +103,13 @@ class InpaintPanel(Widget):
             self.thicknessChanged.emit(self.thicknessSlider.value())
 
     def showEvent(self, e) -> None:
-        self.inpaint_layout.addWidget(self.inpainter_panel.module_combobox)
+        if self.inpainter_panel is not None:
+            self.inpaint_layout.addWidget(self.inpainter_panel.module_combobox)
         super().showEvent(e)
 
     def hideEvent(self, e) -> None:
-        self.inpaint_layout.removeWidget(self.inpainter_panel.module_combobox)
+        if self.inpainter_panel is not None:
+            self.inpaint_layout.removeWidget(self.inpainter_panel.module_combobox)
         return super().hideEvent(e)
 
     @property
@@ -191,7 +192,7 @@ class RectPanel(Widget):
     method_changed = Signal(int)
     delete_btn_clicked = Signal()
     inpaint_btn_clicked = Signal()
-    def __init__(self, inpainter_panel: InpaintConfigPanel, *args, **kwargs) -> None:
+    def __init__(self, inpainter_panel: QWidget = None, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         self.dilate_label = ToolNameLabel(100, self.tr('Dilate'))
@@ -238,11 +239,13 @@ class RectPanel(Widget):
         layout.setSpacing(14)
 
     def showEvent(self, e) -> None:
-        self.inpaint_layout.addWidget(self.inpainter_panel.module_combobox)
+        if self.inpainter_panel is not None:
+            self.inpaint_layout.addWidget(self.inpainter_panel.module_combobox)
         super().showEvent(e)
 
     def hideEvent(self, e) -> None:
-        self.inpaint_layout.removeWidget(self.inpainter_panel.module_combobox)
+        if self.inpainter_panel is not None:
+            self.inpaint_layout.removeWidget(self.inpainter_panel.module_combobox)
         return super().hideEvent(e)
         
     def on_inpaint_seg_method_changed(self):
@@ -275,7 +278,7 @@ class DrawingPanel(Widget):
 
     scale_tool_pos: QPointF = None
 
-    def __init__(self, canvas: Canvas, inpainter_panel: InpaintConfigPanel, *args, **kwargs) -> None:
+    def __init__(self, canvas: Canvas, inpainter_panel: QWidget = None, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.module_manager: ModuleManager = None
         self.canvas = canvas

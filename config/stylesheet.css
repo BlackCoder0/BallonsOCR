@@ -791,18 +791,6 @@ DrawToolCheckBox#DrawHandTool::indicator:checked {
     image: url(icons/drawingtools_hand.svg);
 }
 
-DrawToolCheckBox#DrawInpaintTool::indicator {
-    image: url(icons/drawingtools_inpaint.svg);
-}
-
-DrawToolCheckBox#DrawInpaintTool::indicator:hover {
-    image: url(icons/drawingtools_inpaint_activate.svg);
-}
-
-DrawToolCheckBox#DrawInpaintTool::indicator:checked {
-    image: url(icons/drawingtools_inpaint.svg);
-}
-
 DrawToolCheckBox#DrawPenTool::indicator {
     image: url(icons/drawingtools_pen.svg);
 }

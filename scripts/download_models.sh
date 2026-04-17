@@ -25,12 +25,6 @@ wget -c "https://github.com/zyddnys/manga-image-translator/releases/download/bet
 # Comic Text Detector for CPU
 wget -c "https://github.com/zyddnys/manga-image-translator/releases/download/beta-0.3/comictextdetector.pt.onnx"
 
-# AOT Inpainter
-wget -c "https://github.com/zyddnys/manga-image-translator/releases/download/beta-0.3/inpainting.ckpt" -O aot_inpainter.ckpt
-
-# LaMa Inpainter
-wget -c "https://github.com/zyddnys/manga-image-translator/releases/download/beta-0.3/inpainting_lama_mpe.ckpt" -O lama_mpe.ckpt
-
 # Sugoi Translator
 wget -c "https://github.com/zyddnys/manga-image-translator/releases/download/beta-0.3/sugoi-models.zip" ; unzip -d sugoi_translator sugoi-models.zip
 
@@ -39,21 +33,5 @@ wget -c "https://github.com/zyddnys/manga-image-translator/releases/download/bet
 
 # Manga OCR
 git lfs install; git clone "https://huggingface.co/kha-white/manga-ocr-base"
-
-mkdir -p $LIBS_DIR
-echo $LIBS_DIR
-
-git clone --depth 1 https://github.com/vacancy/PyPatchMatch
-cd PyPatchMatch
-
-# TODO
-# idk how to detect if 'pkg-config --cflags opencv' fails because mine does (Arch BTW), 
-# but there's opencv4 on my system and it compiles.
-# an idea is to 'ls opencv*' these paths 'pkg-config --variable pc_path pkg-config' but... to do.
-
-make -j$(nproc)
-mv libpatchmatch.so $LIBS_DIR
-cd ..; rm -rf PyPatchMatch
-
 
 popd &> /dev/null

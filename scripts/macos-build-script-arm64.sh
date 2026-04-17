@@ -56,13 +56,8 @@ check_file_hash() {
     local files=(
         'alphabet-all-v5.txt|data|c1295ae1962e69e35b5b225a0405d1f3432e368c9941d23bfd3acda12654da33'
         'alphabet-all-v7.txt|data|f5722368146aa0fbcc9f4726866e4efc3203318ebb66c811d8cbbe915576538a'
-        'macos_libopencv_world.4.8.0.dylib|data/libs|843704ab096d3afd8709abe2a2c525ce3a836bb0a629ed1ee9b8f5cee9938310'
-        'macos_libpatchmatch_inpaint.dylib|data/libs|849ca84759385d410c9587d69690e668822a3fc376ce2219e583e7e0be5b5e9a'
-        'aot_inpainter.ckpt|data/models|878d541c68648969bc1b042a6e997f3a58e49b6c07c5636ad55130736977149f'
         'comictextdetector.pt|data/models|1f90fa60aeeb1eb82e2ac1167a66bf139a8a61b8780acd351ead55268540cccb'
         'comictextdetector.pt.onnx|data/models|1a86ace74961413cbd650002e7bb4dcec4980ffa21b2f19b86933372071d718f'
-        'lama_large_512px.ckpt|data/models|11d30fbb3000fb2eceae318b75d9ced9229d99ae990a7f8b3ac35c8d31f2c935'
-        'lama_mpe.ckpt|data/models|d625aa1b3e0d0408acfd6928aa84f005867aa8dbb9162480346a4e20660786cc'
         'config.json|data/models/manga-ocr-base|8c0e395de8fa699daaac21aee33a4ba9bd1309cfbff03147813d2a025f39f349'
         'preprocessor_config.json|data/models/manga-ocr-base|af4eb4d79cf61b47010fc0bc9352ee967579c417423b4917188d809b7e048948'
         'pytorch_model.bin|data/models/manga-ocr-base|c63e0bb5b3ff798c5991de18a8e0956c7ee6d1563aca6729029815eda6f5c2eb'

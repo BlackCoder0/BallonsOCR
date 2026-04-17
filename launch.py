@@ -8,7 +8,7 @@ import subprocess
 from platform import platform
 
 BRANCH = 'dev'
-VERSION = '1.0.1'
+VERSION = '1.0.2'
 
 python = sys.executable
 git = os.environ.get('GIT', "git")

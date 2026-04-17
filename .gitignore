@@ -64,3 +64,5 @@ Ultralytics/settings.json
 BALLONSOCR_PUBLISHING_GUIDE.md
 scripts/setup_ballonsocr_remote.py
 scripts/release
+.pycache_check/
+.nexus-map/

@@ -337,7 +337,7 @@ class FontFormatPanel(Widget):
         self.textstyle_panel = None
         self.textadvancedfmt_panel = None
         
-        self.foldTextBtn = CheckableLabel(self.tr("Unfold"), self.tr("Fold"), False)
+        self.foldTextBtn = CheckableLabel(self.tr("展开"), self.tr("折叠"), False)
         self.sourceBtn = TextCheckerLabel(self.tr("Source"))
         self.transBtn = TextCheckerLabel(self.tr("Text"))
 

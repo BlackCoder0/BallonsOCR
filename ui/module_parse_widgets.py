@@ -1,7 +1,6 @@
 from typing import List, Callable
 
-from modules import GET_VALID_INPAINTERS, GET_VALID_TEXTDETECTORS, GET_VALID_OCR, \
-    DEFAULT_DEVICE, GPUINTENSIVE_SET
+from modules import GET_VALID_TEXTDETECTORS, GET_VALID_OCR, DEFAULT_DEVICE, GPUINTENSIVE_SET
 from utils.logger import logger as LOGGER
 from .custom_widget import ConfigComboBox, ParamComboBox, ParamNameLabel
 from utils.shared import CONFIG_COMBOBOX_LONG, size2width, CONFIG_COMBOBOX_SHORT, CONFIG_COMBOBOX_HEIGHT
@@ -10,6 +9,99 @@ from utils.config import pcfg
 from qtpy.QtWidgets import QPlainTextEdit, QHBoxLayout, QVBoxLayout, QWidget, QLabel, QCheckBox, QLineEdit, QGridLayout, QPushButton
 from qtpy.QtCore import Qt, Signal
 from qtpy.QtGui import QDoubleValidator
+
+
+PARAM_DISPLAY_NAME_MAP = {
+    'device': '设备',
+    'detect_size': '检测尺寸',
+    'detect size': '检测尺寸',
+    'det_rearrange_max_batches': '检测重排最大批次',
+    'det_limit_side_len': '检测边长上限',
+    'font size multiplier': '字号倍率',
+    'font size max': '字号上限',
+    'font size min': '字号下限',
+    'font_size_multiplier': '字号倍率',
+    'mask dilate size': '蒙版膨胀尺寸',
+    'chunk_size': '批大小',
+    'language': '语言',
+    'language_hints': '语言提示',
+    'confidence_level': '置信等级',
+    'vertical_ocr': '竖排 OCR',
+    'horizontal_ocr': '横排 OCR',
+    'fallback_ocr': '回退 OCR',
+    'page_ocr': '整页 OCR',
+    'retry_on_empty': '空结果重试',
+    'vertical_aspect_ratio_threshold': '竖排判定阈值',
+    'expand_small_blocks': '小块扩展',
+    'newline_handling': '换行处理',
+    'reverse_line_order': '反转行顺序',
+    'no_uppercase': '禁用大写',
+    'response_method': '响应方式',
+    'proxy': '代理',
+    'delay': '请求间隔',
+    'api_key': 'API Key',
+    'provider': '服务提供方',
+    'multiple_keys': '多个密钥',
+    'endpoint': '接口地址',
+    'model': '模型',
+    'override_model': '覆盖模型名',
+    'detail_level': '图像细节等级',
+    'prompt': '提示词',
+    'system_prompt': '系统提示词',
+    'requests_per_minute': '每分钟请求数',
+    'max_response_tokens': '最大回复 Token',
+    'max_new_tokens': '最大生成 Token',
+    'target_language': '目标语言',
+    'ocr_version': 'OCR 版本',
+    'use_angle_cls': '启用角度分类',
+    'enable_mkldnn': '启用 MKL-DNN',
+    'rec_batch_num': '识别批大小',
+    'drop_score': '识别置信度阈值',
+    'text_case': '文本大小写',
+    'output_format': '输出格式',
+    'User': '用户名',
+    'Password': '密码',
+    'refine': '结果优化',
+    'filtrate': '结果过滤',
+    'disable_skip_area': '禁用跳过区域',
+    'detect_scale': '检测缩放',
+    'merge_threshold': '合并阈值',
+    'force_expand': '强制扩图',
+    'low_accuracy_mode': '低精度模式',
+    'update_token_btn': '刷新 Token',
+    'expand_ratio': '扩展比例',
+    'font_size_offset': '字号偏移',
+    'font_size_min(set to -1 to disable)': '字号下限（-1 禁用）',
+    'font_size_max(set to -1 to disable)': '字号上限（-1 禁用）',
+    'label': '检测标签',
+    'source text is vertical': '原文为竖排',
+    'confidence threshold': '置信度阈值',
+    'IoU threshold': 'IoU 阈值',
+    'model path': '模型路径',
+    'merge text lines': '合并文本行',
+    'server_url': '服务地址',
+    'prettifyMarkdown': '美化 Markdown',
+    'visualize': '输出可视化',
+    'NOTICE': '说明',
+}
+
+PARAM_DESCRIPTION_MAP = {
+    'ComicTextDetector': 'ComicTextDetector 文本检测器',
+    'OCRMIT32px': 'MIT OCR 模型',
+    'OCR backend for vertical manga text blocks.': '竖排漫画文本块使用的 OCR 后端。',
+    'OCR backend for horizontal text blocks.': '横排文本块使用的 OCR 后端。',
+    'Retry backend used when the primary result is empty or the primary backend is unavailable.': '主 OCR 结果为空或不可用时使用的回退 OCR 后端。',
+    'OCR backend for full-image OCR requests. Use "horizontal_ocr" to reuse the horizontal route.': '整页 OCR 请求使用的后端。选择 "horizontal_ocr" 可复用横排 OCR 路由。',
+    'Retry once with fallback OCR when the first result is empty.': '首次识别结果为空时，使用回退 OCR 再重试一次。',
+    'When detector orientation is missing, treat height / width above this threshold as vertical.': '当检测结果缺少方向信息时，高宽比超过该阈值将按竖排处理。',
+    'Route each text block to different OCR backends based on orientation.': '根据文本块方向，将其分发到不同的 OCR 后端。',
+}
+
+
+def localize_param_text(text: str):
+    if not isinstance(text, str):
+        return text
+    return PARAM_DISPLAY_NAME_MAP.get(text, PARAM_DESCRIPTION_MAP.get(text, text))
 
 
 class ParamCheckGroup(QWidget):
@@ -22,7 +114,7 @@ class ParamCheckGroup(QWidget):
         layout = QHBoxLayout(self)
         self.label2widget = {}
         for k, v in check_group.items():
-            checker = QCheckBox(text=k, parent=self)
+            checker = QCheckBox(text=localize_param_text(k), parent=self)
             checker.setChecked(v)
             layout.addWidget(checker)
             self.label2widget[k] = checker
@@ -86,7 +178,7 @@ class ParamCheckerBox(QWidget):
         super().__init__(*args, **kwargs)
         self.param_key = param_key
         self.checker = QCheckBox()
-        name_label = ParamNameLabel(param_key)
+        name_label = ParamNameLabel(localize_param_text(param_key))
         hlayout = QHBoxLayout(self)
         hlayout.addWidget(name_label)
         hlayout.addWidget(self.checker)
@@ -114,8 +206,8 @@ class ParamCheckBox(QCheckBox):
 def get_param_display_name(param_key: str, param_dict: dict = None):
     if param_dict is not None and isinstance(param_dict, dict):
         if 'display_name' in param_dict:
-            return param_dict['display_name']
-    return param_key
+            return localize_param_text(param_dict['display_name'])
+    return localize_param_text(param_key)
 
 
 class ParamPushButton(QPushButton):
@@ -144,12 +236,12 @@ class ParamWidget(QWidget):
         layout.addStretch(-1)
 
         if 'description' in params:
-            self.setToolTip(params['description'])
+            self.setToolTip(localize_param_text(params['description']))
 
         for ii, param_key in enumerate(params):
             if param_key == 'description' or param_key.startswith('__'):
                 continue
-            display_param_name = param_key
+            display_param_name = get_param_display_name(param_key)
 
             require_label = True
             is_str = isinstance(params[param_key], str)
@@ -216,7 +308,7 @@ class ParamWidget(QWidget):
                 if param_widget is not None:
                     param_widget.paramwidget_edited.connect(self.on_paramwidget_edited)
                     if 'description' in param_dict:
-                        param_widget.setToolTip(param_dict['description'])
+                        param_widget.setToolTip(localize_param_text(param_dict['description']))
 
             widget_idx = 0
             if require_label:
@@ -253,7 +345,7 @@ class ParamWidget(QWidget):
         self.paramwidget_edited.emit(paramw.param_key, content_dict)
 
     def on_paramwidget_edited(self, param_key, param_content):
-        content_dict = {'content': param_content}
+        content_dict = {'content': param_content, 'widget': self.sender()}
         self.paramwidget_edited.emit(param_key, content_dict)
 
 class ModuleParseWidgets(QWidget):
@@ -358,21 +450,6 @@ class ModuleConfigParseWidget(QWidget):
         self.module_changed.emit(self.module_combobox.currentText())
 
 
-class InpaintConfigPanel(ModuleConfigParseWidget):
-    def __init__(self, module_name: str, scrollWidget: QWidget = None, *args, **kwargs) -> None:
-        super().__init__(module_name, GET_VALID_INPAINTERS, scrollWidget = scrollWidget, *args, **kwargs)
-        self.inpainter_changed = self.module_changed
-        self.setInpainter = self.setModule
-        self.needInpaintChecker = ParamCheckerBox(self.tr('由程序决定是否需要使用所选修补方法。'))
-        self.vlayout.addWidget(self.needInpaintChecker)
-
-    def showEvent(self, e) -> None:
-        self.p_layout.insertWidget(1, self.module_combobox)
-        super().showEvent(e)
-
-    def hideEvent(self, e) -> None:
-        self.p_layout.removeWidget(self.module_combobox)
-        return super().hideEvent(e)
 
 class TextDetectConfigPanel(ModuleConfigParseWidget):
     def __init__(self, module_name: str, scrollWidget: QWidget = None, *args, **kwargs) -> None:
@@ -388,11 +465,10 @@ class OCRConfigPanel(ModuleConfigParseWidget):
         super().__init__(module_name, GET_VALID_OCR, scrollWidget = scrollWidget, *args, **kwargs)
         self.ocr_changed = self.module_changed
         self.setOCR = self.setModule
-        self.restoreEmptyOCRChecker = QCheckBox(self.tr("当 OCR 返回空文本时，删除并还原对应区域。"), self)
+        self.restoreEmptyOCRChecker = QCheckBox(self.tr('当 OCR 返回空文本时，删除并还原对应区域。'), self)
         self.restoreEmptyOCRChecker.clicked.connect(self.on_restore_empty_ocr)
         self.vlayout.addWidget(self.restoreEmptyOCRChecker)
-        # 字体检测选项
-        self.fontDetectChecker = QCheckBox(self.tr("字体检测"), self)
+        self.fontDetectChecker = QCheckBox(self.tr('字体检测'), self)
         self.fontDetectChecker.setChecked(pcfg.module.ocr_font_detect)
         self.fontDetectChecker.clicked.connect(self.on_fontdetect_changed)
         self.vlayout.addWidget(self.fontDetectChecker)

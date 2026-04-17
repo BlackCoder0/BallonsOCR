@@ -760,30 +760,27 @@ class Canvas(QGraphicsScene):
     def on_create_contextmenu(self, pos: QPoint, is_textpanel: bool):
         if self.textEditMode() and not self.creating_textblock:
             menu = QMenu(self.gv)
-            copy_act = menu.addAction(self.tr("Copy"))
+            copy_act = menu.addAction(self.tr("复制"))
             copy_act.setShortcut(QKeySequence.StandardKey.Copy)
-            paste_act = menu.addAction(self.tr("Paste"))
+            paste_act = menu.addAction(self.tr("粘贴"))
             paste_act.setShortcut(QKeySequence.StandardKey.Paste)
-            delete_act = menu.addAction(self.tr("Delete"))
+            delete_act = menu.addAction(self.tr("删除"))
             delete_act.setShortcut(QKeySequence("Ctrl+D"))
-            copy_src_act = menu.addAction(self.tr("Copy source text"))
+            copy_src_act = menu.addAction(self.tr("复制源文本"))
             copy_src_act.setShortcut(QKeySequence("Ctrl+Shift+C"))
-            paste_src_act = menu.addAction(self.tr("Paste source text"))
+            paste_src_act = menu.addAction(self.tr("粘贴源文本"))
             paste_src_act.setShortcut(QKeySequence("Ctrl+Shift+V"))
-            delete_recover_act = menu.addAction(self.tr("Delete and Recover removed text"))
+            delete_recover_act = menu.addAction(self.tr("删除并恢复已擦除文字"))
             delete_recover_act.setShortcut(QKeySequence("Ctrl+Shift+D"))
 
             menu.addSeparator()
 
-            format_act = menu.addAction(self.tr("Apply font formatting"))
-            layout_act = menu.addAction(self.tr("Auto layout"))
-            angle_act = menu.addAction(self.tr("Reset Angle"))
-            squeeze_act = menu.addAction(self.tr("Squeeze"))
+            format_act = menu.addAction(self.tr("应用字体格式"))
+            layout_act = menu.addAction(self.tr("自动排版"))
+            angle_act = menu.addAction(self.tr("重置角度"))
+            squeeze_act = menu.addAction(self.tr("压缩文本框"))
             menu.addSeparator()
-            extract_act = menu.addAction(self.tr("Extract text"))
-            inpaint_act = None
-            if not shared.EXTRACT_ONLY:
-                inpaint_act = menu.addAction(self.tr("Inpaint"))
+            extract_act = menu.addAction(self.tr("提取文字"))
 
             rst = menu.exec(pos)
             
@@ -809,8 +806,6 @@ class Canvas(QGraphicsScene):
                 self.squeeze_blk.emit()
             elif rst == extract_act:
                 self.run_blktrans.emit(0)
-            elif rst == inpaint_act:
-                self.run_blktrans.emit(3)
 
     @property
     def have_selected_blkitem(self):

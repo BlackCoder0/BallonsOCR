@@ -13,7 +13,7 @@ from utils.textblock import visualize_textblocks
 from utils.proj_imgtrans import ProjImgTrans
 from utils.config import pcfg
 from utils.io_utils import imread, imwrite
-from modules import MODULETYPE_TO_REGISTRIES, init_translator_registries, init_inpainter_registries, init_ocr_registries, init_textdetector_registries
+from modules import MODULETYPE_TO_REGISTRIES, init_ocr_registries, init_textdetector_registries
 
 
 os.chdir(PROGRAM_PATH)

@@ -319,7 +319,6 @@ TORCH_DTYPE_MAP = {
 
 MODULE_SCRIPTS = {
     'textdetector': {'module_dir': 'modules/textdetector', 'module_pattern': r'detector_(.*?).py'},
-    'inpainter': {'module_dir': 'modules/inpaint', 'module_pattern': r'inpaint_(.*?).py'},
     'ocr': {'module_dir': 'modules/ocr', 'module_pattern': r'ocr_(.*?).py'},
 }
     
@@ -352,9 +351,8 @@ def init_textdetector_registries():
 
 
 def init_inpainter_registries():
-    init_module_registries('inpainter')
+    return
 
 
 def init_ocr_registries():
     init_module_registries('ocr')
-

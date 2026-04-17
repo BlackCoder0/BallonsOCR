@@ -8,7 +8,7 @@ from .custom_widget import ConfigComboBox, Widget
 from utils.config import pcfg
 from utils import shared as C
 from utils.shared import CONFIG_FONTSIZE_CONTENT, CONFIG_FONTSIZE_HEADER, CONFIG_FONTSIZE_TABLE, CONFIG_COMBOBOX_SHORT, CONFIG_COMBOBOX_LONG, CONFIG_COMBOBOX_MIDEAN
-from .module_parse_widgets import InpaintConfigPanel, TextDetectConfigPanel, OCRConfigPanel
+from .module_parse_widgets import TextDetectConfigPanel, OCRConfigPanel
 
 class CustomIntValidator(QIntValidator):
 
@@ -353,7 +353,6 @@ class ConfigPanel(Widget):
         
         label_text_det = self.tr('文本检测')
         label_text_ocr = self.tr('文字识别')
-        label_inpaint = self.tr('修补')
         label_startup = self.tr('启动')
         label_typesetting = self.tr('排版')
         label_save = self.tr('保存')
@@ -362,7 +361,6 @@ class ConfigPanel(Widget):
         dltableitem.appendRows([
             TableItem(label_text_det, CONFIG_FONTSIZE_TABLE),
             TableItem(label_text_ocr, CONFIG_FONTSIZE_TABLE),
-            TableItem(label_inpaint, CONFIG_FONTSIZE_TABLE),
         ])
         generalTableItem.appendRows([
             TableItem(label_startup, CONFIG_FONTSIZE_TABLE),
@@ -391,14 +389,8 @@ class ConfigPanel(Widget):
         dlConfigPanel.addTextLabel(label_text_ocr)
         self.ocr_config_panel = OCRConfigPanel(self.tr('文字识别'), scrollWidget=self)
         self.ocr_sub_block = dlConfigPanel.addBlockWidget(self.ocr_config_panel)
-
-        dlConfigPanel.addTextLabel(label_inpaint)
-        self.inpaint_config_panel = InpaintConfigPanel(self.tr('修补器'), scrollWidget=self)
-        self.inpaint_sub_block = dlConfigPanel.addBlockWidget(self.inpaint_config_panel)
-
-        if C.EXTRACT_ONLY:
-            self.inpaint_sub_block.hide()
-            self.configTable.setRowHidden(2, dltableitem.index(), True)
+        self.inpaint_config_panel = None
+        self.inpaint_sub_block = None
 
         generalConfigPanel.addTextLabel(label_startup)
         self.open_on_startup_checker, _ = generalConfigPanel.addCheckBox(self.tr('启动时重新打开上次项目'))
@@ -457,7 +449,7 @@ class ConfigPanel(Widget):
         self.let_textstyle_indep_checker, _ = generalConfigPanel.addCheckBox(self.tr('每个项目使用独立文本样式'))
         self.let_textstyle_indep_checker.stateChanged.connect(self.on_textstyle_indep_changed)
 
-        self.let_show_only_custom_fonts, sublock = generalConfigPanel.addCheckBox(self.tr("仅显示自定义字体"))
+        self.let_show_only_custom_fonts, sublock = generalConfigPanel.addCheckBox(self.tr('仅显示自定义字体'))
         self.let_show_only_custom_fonts.stateChanged.connect(self.on_show_only_custom_fonts)
 
         generalConfigPanel.addTextLabel(label_save)
@@ -477,20 +469,20 @@ class ConfigPanel(Widget):
 
         generalConfigPanel.addTextLabel(label_saladict)
 
-        sublock = ConfigSubBlock(ConfigTextLabel(self.tr("<a href=\"https://github.com/dmMaze/BallonsTranslator/tree/master/doc/saladict.md\">安装说明</a>"), CONFIG_FONTSIZE_CONTENT - 2), vertical_layout=False)
+        sublock = ConfigSubBlock(ConfigTextLabel(self.tr('<a href="https://github.com/dmMaze/BallonsTranslator/tree/master/doc/saladict.md">安装说明</a>'), CONFIG_FONTSIZE_CONTENT - 2), vertical_layout=False)
         sublock.layout().insertStretch(-1)
         generalConfigPanel.addSublock(sublock)
 
         self.selectext_minimenu_checker, _ = generalConfigPanel.addCheckBox(self.tr('选中文本时显示迷你菜单'))
         self.selectext_minimenu_checker.stateChanged.connect(self.on_selectext_minimenu_changed)
-        self.saladict_shortcut = QKeySequenceEdit("ALT+W", self)
+        self.saladict_shortcut = QKeySequenceEdit('ALT+W', self)
         self.saladict_shortcut.keySequenceChanged.connect(self.on_saladict_shortcut_changed)
         self.saladict_shortcut.setFixedWidth(CONFIG_COMBOBOX_MIDEAN)
 
-        sublock = ConfigSubBlock(self.saladict_shortcut, self.tr("快捷键"), vertical_layout=False)
+        sublock = ConfigSubBlock(self.saladict_shortcut, self.tr('快捷键'), vertical_layout=False)
         sublock.layout().insertStretch(-1)
         generalConfigPanel.addSublock(sublock)
-        self.searchurl_combobox, _ = generalConfigPanel.addCombobox(["https://www.google.com/search?q=", "https://www.bing.com/search?q=", "https://duckduckgo.com/?q=", "https://yandex.com/search/?text=", "http://www.baidu.com/s?wd=", "https://search.yahoo.com/search;?p=", "https://www.urbandictionary.com/define.php?term="], self.tr("搜索引擎"), fix_size=False)
+        self.searchurl_combobox, _ = generalConfigPanel.addCombobox(['https://www.google.com/search?q=', 'https://www.bing.com/search?q=', 'https://duckduckgo.com/?q=', 'https://yandex.com/search/?text=', 'http://www.baidu.com/s?wd=', 'https://search.yahoo.com/search;?p=', 'https://www.urbandictionary.com/define.php?term='], self.tr('搜索引擎'), fix_size=False)
         self.searchurl_combobox.setEditable(True)
         self.searchurl_combobox.setFixedWidth(CONFIG_COMBOBOX_LONG)
         self.searchurl_combobox.currentTextChanged.connect(self.on_searchurl_changed)
@@ -606,12 +598,6 @@ class ConfigPanel(Widget):
         pcfg.let_show_only_custom_fonts_flag = self.let_show_only_custom_fonts.isChecked()
         self.show_only_custom_font.emit(pcfg.let_show_only_custom_fonts_flag)
 
-    def focusOnInpaint(self):
-        if C.EXTRACT_ONLY:
-            return
-        idx0, idx1 = self.inpaint_sub_block.idx0, self.inpaint_sub_block.idx1
-        self.configTable.setCurrentItem(idx0, idx1)
-        self.configTable.tableitem_pressed.emit(idx0, idx1)
 
     def focusOnDetect(self):
         idx0, idx1 = self.detect_sub_block.idx0, self.detect_sub_block.idx1

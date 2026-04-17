@@ -1,10 +1,11 @@
 import time
 from typing import Union, List, Callable
 import os.path as osp
+from pathlib import Path
 
 import numpy as np
 from qtpy.QtCore import QThread, Signal, QObject, QTimer
-from qtpy.QtWidgets import QFileDialog
+from qtpy.QtWidgets import QFileDialog, QMessageBox, QWidget
 
 from .funcmaps import get_maskseg_method
 from utils.logger import logger as LOGGER
@@ -17,6 +18,14 @@ from modules import INPAINTERS, TEXTDETECTORS, OCR, \
     InpainterBase, TextDetectorBase, OCRBase, merge_config_module_params
 from utils.textblock import TextBlock, sort_regions
 from utils import shared
+from utils.asset_pack import (
+    SMART_OCR_PARAM_KEYS,
+    ensure_pack_extracted,
+    get_pack_spec,
+    missing_packs_for_module,
+    module_pack_names,
+    pack_exists,
+)
 from utils.message import create_error_dialog, create_info_dialog
 from .custom_widget import ImgtransProgressMessageBox, ParamComboBox
 from .configpanel import ConfigPanel
@@ -28,7 +37,7 @@ cfg_module = pcfg.module
 class ModuleThread(QThread):
 
     finish_set_module = Signal()
-    _failed_set_module_msg = 'Failed to set module.'
+    _failed_set_module_msg = '模块加载失败。'
     module_thread_stopped = Signal()
 
     def __init__(self, module_key: str, MODULE_REGISTER: Registry, *args, **kwargs) -> None:
@@ -122,7 +131,7 @@ class InpaintThread(ModuleThread):
             }
             self.finish_inpaint.emit(inpaint_dict)
         except Exception as e:
-            create_error_dialog(e, self.tr('Inpainting Failed.'), 'InpaintFailed')
+            create_error_dialog(e, self.tr('图像修补失败。'), 'InpaintFailed')
             self.inpainting = False
             self.inpaint_failed.emit()
         self.inpainting = False
@@ -223,7 +232,7 @@ class ImgtransThread(QThread):
             try:
                 self.ocr_thread.module.run_ocr(tgt_img, blk_list, split_textblk=True)
             except Exception as e:
-                create_error_dialog(e, self.tr('OCR Failed.'), 'OCRFailed')
+                create_error_dialog(e, self.tr('文字识别失败。'), 'OCRFailed')
             self.finish_blktrans.emit(mode, blk_ids)
 
         if mode > 1:
@@ -287,7 +296,7 @@ class ImgtransThread(QThread):
                     mask, blk_list = self.textdetector.detect(img, self.imgtrans_proj)
                     need_save_mask = True
                 except Exception as e:
-                    create_error_dialog(e, self.tr('Text Detection Failed.'), 'TextDetectFailed')
+                    create_error_dialog(e, self.tr('文本检测失败。'), 'TextDetectFailed')
                     blk_list = []
                 self.detect_counter += 1
                 if pcfg.module.keep_exist_textlines:
@@ -312,7 +321,7 @@ class ImgtransThread(QThread):
                 try:
                     self.ocr.run_ocr(img, blk_list)
                 except Exception as e:
-                    create_error_dialog(e, self.tr('OCR Failed.'), 'OCRFailed')
+                    create_error_dialog(e, self.tr('文字识别失败。'), 'OCRFailed')
                 self.ocr_counter += 1
 
                 if pcfg.restore_ocr_empty:
@@ -360,13 +369,12 @@ class ImgtransThread(QThread):
             if cfg_module.enable_inpaint:
                 if mask is None:
                     mask = self.imgtrans_proj.load_mask_by_imgname(imgname)
-                    
                 if mask is not None:
                     try:
                         inpainted = self.inpainter.inpaint(img, mask, blk_list)
                         self.imgtrans_proj.save_inpainted(imgname, inpainted)
                     except Exception as e:
-                        create_error_dialog(e, self.tr('Inpainting Failed.'), 'InpaintFailed')
+                        create_error_dialog(e, self.tr('图像修补失败。'), 'InpaintFailed')
                     
                 self.inpaint_counter += 1
                 self.imgtrans_proj.update_page_progress(imgname, RunStatus.FIN_INPAINT)
@@ -445,6 +453,22 @@ class ModuleManager(QObject):
         self.imgtrans_proj = imgtrans_proj
         self.check_inpaint_fin_timer = QTimer(self)
         self.check_inpaint_fin_timer.timeout.connect(self.check_inpaint_th_finished)
+        self.prompt_parent: QWidget = None
+        self.selector_widgets = {
+            'textdetector': [],
+            'ocr': [],
+            'inpainter': [],
+        }
+
+    def bindPromptParent(self, parent: QWidget):
+        self.prompt_parent = parent
+
+    def registerModuleSelector(self, module_key: str, selector_widget: QWidget):
+        if module_key not in self.selector_widgets:
+            raise KeyError(f'Unknown module key: {module_key}')
+        if selector_widget is None or selector_widget in self.selector_widgets[module_key]:
+            return
+        self.selector_widgets[module_key].append(selector_widget)
 
     def setupThread(self, config_panel: ConfigPanel, imgtrans_progress_msgbox: ImgtransProgressMessageBox, ocr_postprocess: Callable = None):
         self.textdetect_thread = TextDetectThread()
@@ -535,6 +559,8 @@ class ModuleManager(QObject):
             LOGGER.info('proj file is empty, nothing to do')
             self.progress_msgbox.hide()
             return
+        if not self.ensureRuntimePacksReady():
+            return
         self.last_finished_index = -1
         self.terminateRunningThread()
         
@@ -557,6 +583,12 @@ class ModuleManager(QObject):
         self.imgtrans_thread.requestStop()
 
     def runBlktransPipeline(self, blk_list: List[TextBlock], tgt_img: np.ndarray, mode: int, blk_ids: List[int], tgt_mask):
+        if not self.ensureRuntimePacksReady(
+            need_detect=False,
+            need_ocr=mode >= 0 and mode < 3,
+            need_inpaint=mode >= 2,
+        ):
+            return
         self.terminateRunningThread()
         self.progress_msgbox.hide_all_bars()
         if mode >= 0 and mode < 3:
@@ -644,37 +676,232 @@ class ModuleManager(QObject):
         self.progress_msgbox.hide()
         self.imgtrans_pipeline_finished.emit()
 
-    def setInpainter(self, inpainter: str = None):
+    def _get_param_value(self, params: dict, param_key: str):
+        if not isinstance(params, dict) or param_key not in params:
+            return None
+        value = params[param_key]
+        if isinstance(value, dict):
+            return value.get('value')
+        return value
+
+    def _current_module_name(self, module_key: str) -> str:
+        thread = getattr(self, f'{module_key}_thread', None)
+        module = getattr(thread, module_key, None) if thread is not None else None
+        if module is not None:
+            return module.name
+        return getattr(cfg_module, module_key)
+
+    def _set_widget_value(self, widget: QWidget, value):
+        if widget is None or value is None:
+            return
+        widget.blockSignals(True)
+        try:
+            if hasattr(widget, 'setCurrentText'):
+                widget.setCurrentText(str(value))
+            elif hasattr(widget, 'setText'):
+                widget.setText(str(value))
+        finally:
+            widget.blockSignals(False)
+
+    def _revert_module_selectors(self, module_key: str, value: str):
+        for selector_widget in self.selector_widgets.get(module_key, []):
+            self._set_widget_value(selector_widget, value)
+
+    def _get_module_class(self, module_name: str):
+        if not module_name:
+            return None
+        for registry in (TEXTDETECTORS, OCR, INPAINTERS):
+            module_class = registry.module_dict.get(module_name)
+            if module_class is not None:
+                return module_class
+        return None
+
+    def _module_download_targets_ready(self, module_name: str) -> bool:
+        module_class = self._get_module_class(module_name)
+        if module_class is None:
+            return False
+
+        download_specs = getattr(module_class, 'download_file_list', None) or []
+        has_tracked_targets = False
+        for download_spec in download_specs:
+            save_files = download_spec.get('save_files')
+            if save_files:
+                has_tracked_targets = True
+                if any(not Path(file_path).exists() for file_path in save_files):
+                    return False
+                continue
+
+            files = download_spec.get('files') or []
+            save_dir = download_spec.get('save_dir')
+            if save_dir and files:
+                has_tracked_targets = True
+                base_dir = Path(save_dir)
+                if any(not (base_dir / file_name).exists() for file_name in files):
+                    return False
+                continue
+
+            if files:
+                has_tracked_targets = True
+                if any(not Path(file_path).exists() for file_path in files):
+                    return False
+
+        return has_tracked_targets
+
+    def _missing_pack_names_for_module(self, module_name: str) -> List[str]:
+        pack_names = missing_packs_for_module(module_name)
+        if len(pack_names) == 0:
+            return []
+        if self._module_download_targets_ready(module_name):
+            return []
+        return pack_names
+
+    def _unique_pack_names(self, pack_names: List[str]) -> List[str]:
+        ordered_pack_names = []
+        seen = set()
+        for pack_name in pack_names:
+            if not pack_name or pack_name in seen:
+                continue
+            seen.add(pack_name)
+            ordered_pack_names.append(pack_name)
+        return ordered_pack_names
+
+    def _prompt_extract_packs(self, pack_names: List[str], reason: str) -> bool:
+        pack_names = self._unique_pack_names(pack_names)
+        if len(pack_names) == 0:
+            return True
+
+        missing_archives = [pack_name for pack_name in pack_names if not pack_exists(pack_name)]
+        if len(missing_archives) > 0:
+            missing_archive_lines = '\n'.join(
+                f'- {get_pack_spec(pack_name).archive_name}'
+                for pack_name in missing_archives
+            )
+            QMessageBox.warning(
+                self.prompt_parent,
+                self.tr('缺少模型压缩包'),
+                self.tr('未在 packs/ 或 optional-packs/ 中找到所需模型压缩包。\n') +
+                f'{reason}\n\n{missing_archive_lines}',
+            )
+            return False
+
+        pack_lines = '\n'.join(
+            f'- {get_pack_spec(pack_name).description} ({get_pack_spec(pack_name).archive_name})'
+            for pack_name in pack_names
+        )
+        answer = QMessageBox.question(
+            self.prompt_parent,
+            self.tr('解压模型压缩包'),
+            self.tr('当前功能需要额外的模型文件。\n') +
+            f'{reason}\n\n{pack_lines}\n\n' +
+            self.tr('现在解压吗？'),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return False
+
+        try:
+            for pack_name in pack_names:
+                extracted = ensure_pack_extracted(pack_name)
+                if extracted:
+                    LOGGER.info(f'Extracted asset pack: {pack_name}')
+        except Exception as e:
+            create_error_dialog(e, self.tr('解压模型压缩包失败。'))
+            return False
+        return True
+
+    def _ensure_module_pack_ready(self, module_name: str, reason: str) -> bool:
+        return self._prompt_extract_packs(self._missing_pack_names_for_module(module_name), reason)
+
+    def _collect_smart_ocr_missing_packs(self) -> List[str]:
+        smart_ocr_params = cfg_module.ocr_params.get('smart_ocr', {})
+        pack_names = []
+        for param_key in SMART_OCR_PARAM_KEYS:
+            module_name = self._get_param_value(smart_ocr_params, param_key)
+            if module_name in {None, '', 'none_ocr', 'horizontal_ocr'}:
+                continue
+            pack_names.extend(self._missing_pack_names_for_module(module_name))
+        return self._unique_pack_names(pack_names)
+
+    def ensureRuntimePacksReady(self, need_detect=None, need_ocr=None, need_inpaint=None) -> bool:
+        if need_detect is None:
+            need_detect = cfg_module.enable_detect
+        if need_ocr is None:
+            need_ocr = cfg_module.enable_ocr
+        if need_inpaint is None:
+            need_inpaint = cfg_module.enable_inpaint and not shared.EXTRACT_ONLY
+
+        pack_names = []
+        if need_detect:
+            pack_names.extend(self._missing_pack_names_for_module(cfg_module.textdetector))
+        if need_ocr:
+            pack_names.extend(self._missing_pack_names_for_module(cfg_module.ocr))
+            if cfg_module.ocr == 'smart_ocr':
+                pack_names.extend(self._collect_smart_ocr_missing_packs())
+        if need_inpaint:
+            pack_names.extend(self._missing_pack_names_for_module(cfg_module.inpainter))
+
+        return self._prompt_extract_packs(
+            pack_names,
+            self.tr('当前任务需要额外的模型文件。'),
+        )
+
+    def setInpainter(self, inpainter: str = None, prompt_missing: bool = True):
         
         if self.block_set_inpainter:
-            return
+            return False
         
         if inpainter is None:
-            inpainter =cfg_module.inpainter
+            inpainter = cfg_module.inpainter
+
+        current_inpainter = self._current_module_name('inpainter')
+        if prompt_missing and not self._ensure_module_pack_ready(
+            inpainter,
+            self.tr(f'修补模型：{inpainter}'),
+        ):
+            self._revert_module_selectors('inpainter', current_inpainter)
+            return False
         
         if self.inpaint_thread.isRunning():
             self.block_set_inpainter = True
-            create_info_dialog(self.tr('Set Inpainter...'), modal=True, signal_slot_map_list=[{'signal': self.inpaint_th_finished, 'slot': 'done'}])
+            create_info_dialog(self.tr('正在切换修补模型...'), modal=True, signal_slot_map_list=[{'signal': self.inpaint_th_finished, 'slot': 'done'}])
             self.check_inpaint_fin_timer.start(300)
-            return
+            return False
 
         self.inpaint_thread.setInpainter(inpainter)
+        return True
 
-    def setTextDetector(self, textdetector: str = None):
+    def setTextDetector(self, textdetector: str = None, prompt_missing: bool = True):
         if textdetector is None:
             textdetector = cfg_module.textdetector
+        current_textdetector = self._current_module_name('textdetector')
+        if prompt_missing and not self._ensure_module_pack_ready(
+            textdetector,
+            self.tr(f'文本检测模型：{textdetector}'),
+        ):
+            self._revert_module_selectors('textdetector', current_textdetector)
+            return False
         if self.textdetect_thread.isRunning():
             LOGGER.warning('Terminating a running text detection thread.')
             self.textdetect_thread.terminate()
         self.textdetect_thread.setTextDetector(textdetector)
+        return True
 
-    def setOCR(self, ocr: str = None):
+    def setOCR(self, ocr: str = None, prompt_missing: bool = True):
         if ocr is None:
             ocr = cfg_module.ocr
+        current_ocr = self._current_module_name('ocr')
+        if prompt_missing and not self._ensure_module_pack_ready(
+            ocr,
+            self.tr(f'文字识别模型：{ocr}'),
+        ):
+            self._revert_module_selectors('ocr', current_ocr)
+            return False
         if self.ocr_thread.isRunning():
             LOGGER.warning('Terminating a running OCR thread.')
             self.ocr_thread.terminate()
         self.ocr_thread.setOCR(ocr)
+        return True
 
     def on_finish_inpaint(self, inpaint_dict: dict):
         if self.run_canvas_inpaint:
@@ -697,6 +924,18 @@ class ModuleManager(QObject):
 
     def on_ocrparam_edited(self, param_key: str, param_content: dict):
         if self.ocr is not None:
+            if self.ocr.name == 'smart_ocr' and param_key in SMART_OCR_PARAM_KEYS:
+                selected_backend = param_content.get('content')
+                if param_key == 'page_ocr' and selected_backend == 'horizontal_ocr':
+                    selected_backend = self._get_param_value(self.ocr.params, 'horizontal_ocr')
+                previous_value = self._get_param_value(self.ocr.params, param_key)
+                if selected_backend not in {None, '', 'none_ocr', 'horizontal_ocr'}:
+                    if not self._ensure_module_pack_ready(
+                        selected_backend,
+                        self.tr(f'Smart OCR 后端：{selected_backend}'),
+                    ):
+                        self._set_widget_value(param_content.get('widget'), previous_value)
+                        return
             self.updateModuleSetupParam(self.ocr, param_key, param_content)
             cfg_module.ocr_params[self.ocr.name] = self.ocr.params
 

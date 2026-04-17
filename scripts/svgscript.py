@@ -51,7 +51,7 @@ if __name__ == '__main__':
 
     # savename = r'titlebar_close.svg'
     # colored_activate_savename = r'imgtrans_activate'
-    colored_savename = r'drawingtools_inpaint_activate'
+    colored_savename = r'drawingtools_hand_activate'
     minify_svg(svgpath)
 
     set_svgcolor(svgpath, colored_savename, eva_light)

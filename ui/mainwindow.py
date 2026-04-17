@@ -16,7 +16,7 @@ from utils.logger import logger as LOGGER
 from utils.textblock import TextBlock, TextAlignment
 from utils import shared
 from utils.message import create_error_dialog, create_info_dialog
-from modules import GET_VALID_TEXTDETECTORS, GET_VALID_INPAINTERS, GET_VALID_OCR
+from modules import GET_VALID_TEXTDETECTORS, GET_VALID_OCR
 from .misc import parse_stylesheet, set_html_family, QKEY
 from utils.config import ProgramConfig, pcfg, save_config, text_styles, save_text_styles, load_textstyle_from, FontFormat
 from utils.proj_imgtrans import ProjImgTrans
@@ -47,7 +47,7 @@ class PageListView(QListWidget):
 
     def contextMenuEvent(self, e: QContextMenuEvent):
         menu = QMenu()
-        reveal_act = menu.addAction(self.tr('Reveal in File Explorer'))
+        reveal_act = menu.addAction(self.tr('在资源管理器中定位'))
         rst = menu.exec_(e.globalPos())
 
         if rst == reveal_act:
@@ -155,7 +155,6 @@ class MainWindow(mainwindow_cls):
         self.titleBar.display_lang_changed.connect(self.on_display_lang_changed)
         self.bottomBar = BottomBar(self)
         self.bottomBar.textedit_checkchanged.connect(self.setTextEditMode)
-        self.bottomBar.paintmode_checkchanged.connect(self.setPaintMode)
         self.bottomBar.textblock_checkchanged.connect(self.setTextBlockMode)
 
         mainHLayout = QHBoxLayout()
@@ -179,13 +178,13 @@ class MainWindow(mainwindow_cls):
 
         self.bottomBar.originalSlider.valueChanged.connect(self.canvas.setOriginalTransparencyBySlider)
         
-        self.drawingPanel = DrawingPanel(self.canvas, self.configPanel.inpaint_config_panel)
+        self.drawingPanel = DrawingPanel(self.canvas)
         self.textPanel = TextPanel(self.app)
         self.textPanel.formatpanel.foldTextBtn.checkStateChanged.connect(self.fold_textarea)
         self.textPanel.formatpanel.sourceBtn.checkStateChanged.connect(self.show_source_text)
         self.textPanel.formatpanel.transBtn.hide()
 
-        self.ocrSubWidget = KeywordSubWidget(self.tr("Keyword substitution for source text"))
+        self.ocrSubWidget = KeywordSubWidget(self.tr("源文本关键词替换"))
         self.ocrSubWidget.setParent(self)
         self.ocrSubWidget.setWindowFlags(Qt.WindowType.Window)
         self.ocrSubWidget.hide()
@@ -249,15 +248,6 @@ class MainWindow(mainwindow_cls):
             self.bottomBar.ocr_selector.setSelectedValue(name)
             LOGGER.info('OCR set to {}'.format(name))
 
-    def on_finish_setinpainter(self):
-        module_manager = self.module_manager
-        if module_manager.inpainter is not None:
-            name = module_manager.inpainter.name
-            pcfg.module.inpainter = name
-            self.configPanel.inpaint_config_panel.setInpainter(name)
-            self.bottomBar.inpaint_selector.setSelectedValue(name)
-            LOGGER.info('Inpainter set to {}'.format(name))
-
     def on_enable_module(self, idx, checked):
         if idx == 0:
             pcfg.module.enable_detect = checked
@@ -265,12 +255,12 @@ class MainWindow(mainwindow_cls):
         elif idx == 1:
             pcfg.module.enable_ocr = checked
             self.bottomBar.ocr_selector.setVisible(checked)
-        elif idx == 2:
-            pcfg.module.enable_inpaint = checked
-            self.bottomBar.inpaint_selector.setVisible(checked)
         pcfg.module.update_finish_code()
 
     def setupConfig(self):
+        if shared.EXTRACT_ONLY:
+            pcfg.module.enable_inpaint = False
+            pcfg.imgtrans_paintmode = False
 
         self.bottomBar.originalSlider.setValue(int(pcfg.original_transparency * 100))
         self.bottomBar.ocr_selector.selector.addItems(GET_VALID_OCR())
@@ -281,13 +271,6 @@ class MainWindow(mainwindow_cls):
         self.bottomBar.ocr_selector.selector.currentTextChanged.connect(self.on_ocr_changed)
         self.bottomBar.textdet_selector.setVisible(pcfg.module.enable_detect)
         self.bottomBar.ocr_selector.setVisible(pcfg.module.enable_ocr)
-        self.bottomBar.inpaint_selector.setVisible(pcfg.module.enable_inpaint)
-
-        if not shared.EXTRACT_ONLY:
-            self.bottomBar.inpaint_selector.selector.addItems(GET_VALID_INPAINTERS())
-            self.bottomBar.inpaint_selector.selector.currentTextChanged.connect(self.on_inpaint_changed)
-            self.bottomBar.inpaint_selector.cfg_clicked.connect(self.to_inpaint_config)
-
         self.drawingPanel.maskTransperancySlider.setValue(int(pcfg.mask_transparency * 100))
         self.leftBar.initRecentProjMenu(pcfg.recent_proj_list)
         self.leftBar.showPageListLabel.setChecked(pcfg.show_page_list)
@@ -309,16 +292,18 @@ class MainWindow(mainwindow_cls):
         module_manager.imgtrans_pipeline_finished.connect(self.on_imgtrans_pipeline_finished)
         module_manager.page_trans_finished.connect(self.on_pagtrans_finished)
         module_manager.setupThread(self.configPanel, self.imgtrans_progress_msgbox, self.ocr_postprocess)
+        module_manager.bindPromptParent(self)
+        module_manager.registerModuleSelector('textdetector', self.bottomBar.textdet_selector.selector)
+        module_manager.registerModuleSelector('textdetector', self.configPanel.detect_config_panel.module_combobox)
+        module_manager.registerModuleSelector('ocr', self.bottomBar.ocr_selector.selector)
+        module_manager.registerModuleSelector('ocr', self.configPanel.ocr_config_panel.module_combobox)
         module_manager.progress_msgbox.showed.connect(self.on_imgtrans_progressbox_showed)
         module_manager.blktrans_pipeline_finished.connect(self.on_blktrans_finished)
         module_manager.imgtrans_thread.post_process_mask = self.drawingPanel.rectPanel.post_process_mask
-        module_manager.inpaint_thread.finish_set_module.connect(self.on_finish_setinpainter)
         module_manager.textdetect_thread.finish_set_module.connect(self.on_finish_setdetector)
         module_manager.ocr_thread.finish_set_module.connect(self.on_finish_setocr)
-        module_manager.setTextDetector()
-        module_manager.setOCR()
-        if not shared.EXTRACT_ONLY:
-            module_manager.setInpainter()
+        module_manager.setTextDetector(prompt_missing=False)
+        module_manager.setOCR(prompt_missing=False)
 
         self.leftBar.run_imgtrans_clicked.connect(self.run_imgtrans)
 
@@ -338,9 +323,6 @@ class MainWindow(mainwindow_cls):
             if textblock_mode:
                 self.bottomBar.textblockChecker.setChecked(True)
             self.bottomBar.texteditChecker.click()
-        elif pcfg.imgtrans_paintmode:
-            self.bottomBar.paintChecker.click()
-
         self.canvas.search_widget.whole_word_toggle.setChecked(pcfg.fsearch_whole_word)
         self.canvas.search_widget.case_sensitive_toggle.setChecked(pcfg.fsearch_case)
         self.canvas.search_widget.regex_toggle.setChecked(pcfg.fsearch_regex)
@@ -400,7 +382,7 @@ class MainWindow(mainwindow_cls):
             self.opening_dir = False
         except Exception as e:
             self.opening_dir = False
-            create_error_dialog(e, self.tr('Failed to load project ') + directory)
+            create_error_dialog(e, self.tr('加载项目失败：') + directory)
             return
 
     def generate_tif_thumbnails(self, directory: str):
@@ -442,7 +424,7 @@ class MainWindow(mainwindow_cls):
             self.opening_dir = False
         except Exception as e:
             self.opening_dir = False
-            create_error_dialog(e, self.tr('Failed to load project from') + json_path)
+            create_error_dialog(e, self.tr('从项目文件加载失败：') + json_path)
         
     def updatePageList(self):
         if self.pageList.count() != 0:
@@ -498,7 +480,7 @@ class MainWindow(mainwindow_cls):
         # according to https://stackoverflow.com/questions/27635068/how-to-retranslate-dynamically-created-widgets
         # we got to do it manually ... I'd rather restart the program
         msg = QMessageBox()
-        msg.setText(self.tr('Restart to apply changes? \n'))
+        msg.setText(self.tr('需要重启程序以应用更改，是否立即重启？\n'))
         msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         ret = msg.exec_()
         if ret == QMessageBox.StandardButton.Yes:
@@ -587,7 +569,7 @@ class MainWindow(mainwindow_cls):
             shortcutSpace = QShortcut(QKeySequence("Space"), self)
             shortcutSpace.activated.connect(self.shortcutSpace)
 
-            drawpanel_shortcuts = {'hand': 'H', 'rect': 'R', 'inpaint': 'J', 'pen': 'B'}
+            drawpanel_shortcuts = {'hand': 'H', 'rect': 'R', 'pen': 'B'}
             for tool_name, shortcut_key in drawpanel_shortcuts.items():
                 shortcut = QShortcut(QKeySequence(shortcut_key), self)
                 shortcut.activated.connect(partial(self.drawingPanel.shortcutSetCurrentToolByName, tool_name))
@@ -643,8 +625,7 @@ class MainWindow(mainwindow_cls):
                 self.bottomBar.textblockChecker.click()
 
     def shortcutDrawboard(self):
-        if self.centralStackWidget.currentIndex() == 0:
-            self.bottomBar.paintChecker.click()
+        return
 
     def shortcutCtrlD(self):
         if self.centralStackWidget.currentIndex() == 0:
@@ -934,16 +915,8 @@ class MainWindow(mainwindow_cls):
             self.canvas.editing_textblkitem.endEdit()
 
     def setPaintMode(self):
-        if self.bottomBar.paintChecker.isChecked():
-            if self.rightComicTransStackPanel.isHidden():
-                self.rightComicTransStackPanel.show()
-            self.rightComicTransStackPanel.setCurrentIndex(0)
-            self.canvas.setPaintMode(True)
-            self.bottomBar.originalSlider.show()
-            self.bottomBar.textblockChecker.hide()
-        else:
-            self.canvas.setPaintMode(False)
-            self.rightComicTransStackPanel.setHidden(True)
+        self.canvas.setPaintMode(False)
+        self.rightComicTransStackPanel.setHidden(True)
         self.st_manager.setTextEditMode(False)
 
     def setTextEditMode(self):
@@ -1052,12 +1025,6 @@ class MainWindow(mainwindow_cls):
             if editing_textitem is not None:
                 editing_textitem.startEdit()
         
-    def to_inpaint_config(self):
-        if shared.EXTRACT_ONLY:
-            return
-        self.leftBar.configChecker.setChecked(True)
-        self.configPanel.focusOnInpaint()
-
     def to_ocr_config(self):
         self.leftBar.configChecker.setChecked(True)
         self.configPanel.focusOnOCR()
@@ -1076,14 +1043,6 @@ class MainWindow(mainwindow_cls):
         module = self.bottomBar.ocr_selector.selector.currentText()
         tgt_selector = self.configPanel.ocr_config_panel.module_combobox
         if tgt_selector.currentText() != module and module in GET_VALID_OCR():
-            tgt_selector.setCurrentText(module)
-
-    def on_inpaint_changed(self):
-        if shared.EXTRACT_ONLY:
-            return
-        module = self.bottomBar.inpaint_selector.selector.currentText()
-        tgt_selector = self.configPanel.inpaint_config_panel.module_combobox
-        if tgt_selector.currentText() != module and module in GET_VALID_INPAINTERS():
             tgt_selector.setCurrentText(module)
 
     def translateBlkitemList(self, blkitem_list: List, mode: int) -> bool:
@@ -1211,7 +1170,7 @@ class MainWindow(mainwindow_cls):
         self.saveCurrentPage(False, False)
 
     def on_savestate_changed(self, unsaved: bool):
-        save_state = self.tr('unsaved') if unsaved else self.tr('saved')
+        save_state = self.tr('未保存') if unsaved else self.tr('已保存')
         self.titleBar.setTitleContent(save_state=save_state)
 
     def on_textstack_changed(self):
@@ -1245,7 +1204,7 @@ class MainWindow(mainwindow_cls):
         if self.imsave_thread.isRunning():
             self.imsave_thread.finished.connect(self.close)
             mb = FrameLessMessageBox()
-            mb.setText(self.tr('Saving image...'))
+            mb.setText(self.tr('正在保存图片...'))
             self.imsave_thread.finished.connect(mb.close)
             mb.exec()
             return
@@ -1261,14 +1220,14 @@ class MainWindow(mainwindow_cls):
             # 创建自定义消息框，添加"继续运行"选项
             msgBox = QMessageBox(self)
             msgBox.setIcon(QMessageBox.Question)
-            run_text = self.tr('Extract')
-            msgBox.setWindowTitle(self.tr('Confirmation'))
-            msgBox.setText(self.tr(f'"{run_text}" will clear previous results, "Continue" will try to run from previous progress'))
+            run_text = self.tr('提取文字')
+            msgBox.setWindowTitle(self.tr('确认'))
+            msgBox.setText(self.tr(f'选择“{run_text}”会清除之前的结果，选择“继续”会尽量从上次进度继续执行。'))
             
             # 添加三个按钮（直接使用中文）
             restart_btn = msgBox.addButton(run_text, QMessageBox.YesRole)
-            continue_btn = msgBox.addButton(self.tr('Continue'), QMessageBox.AcceptRole)
-            cancel_btn = msgBox.addButton(self.tr('Cancel'), QMessageBox.RejectRole)
+            continue_btn = msgBox.addButton(self.tr('继续'), QMessageBox.AcceptRole)
+            cancel_btn = msgBox.addButton(self.tr('取消'), QMessageBox.RejectRole)
             
             msgBox.setDefaultButton(continue_btn)
             msgBox.exec_()
@@ -1368,9 +1327,9 @@ class MainWindow(mainwindow_cls):
     def on_export_txt(self, dump_target, suffix='.txt'):
         try:
             self.imgtrans_proj.dump_txt(dump_target=dump_target, suffix=suffix)
-            create_info_dialog(self.tr('Text file exported to ') + self.imgtrans_proj.dump_txt_path(dump_target, suffix))
+            create_info_dialog(self.tr('文本已导出到：') + self.imgtrans_proj.dump_txt_path(dump_target, suffix))
         except Exception as e:
-            create_error_dialog(e, self.tr('Failed to export as TEXT file'))
+            create_error_dialog(e, self.tr('导出文本文件失败'))
 
     def on_reveal_file(self):
         current_img_path = self.imgtrans_proj.current_img_path()
@@ -1495,11 +1454,9 @@ class MainWindow(mainwindow_cls):
         npages = len(self.imgtrans_proj.pages)
         if npages > 0:
             if pcfg.module.enable_detect:
-                shared.pbar['detect'] = tqdm(range(npages), desc="Text Detection")
+                shared.pbar['detect'] = tqdm(range(npages), desc="文本检测")
             if pcfg.module.enable_ocr:
-                shared.pbar['ocr'] = tqdm(range(npages), desc="OCR")
-            if pcfg.module.enable_inpaint:
-                shared.pbar['inpaint'] = tqdm(range(npages), desc="Inpaint")
+                shared.pbar['ocr'] = tqdm(range(npages), desc="文字识别")
         self.on_run_imgtrans()
 
     def on_create_errdialog(self, error_msg: str, detail_traceback: str = '', exception_type: str = ''):

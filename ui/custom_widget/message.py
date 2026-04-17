@@ -113,7 +113,7 @@ class TaskProgressBar(Widget):
                 left_progress = 100 - progress
                 eta = left_progress / progress * (cur_time - self.start_time + 1e-6)
                 eta = datetime.timedelta(seconds=int(round(eta)))
-                added_str = f'{progress}% ETA {eta}'
+                added_str = f'{progress}% 剩余 {eta}'
                 self.verbose_label.setText(added_str)
 
 
@@ -169,9 +169,9 @@ class ImgtransProgressMessageBox(ProgressMessageBox):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(None, *args, **kwargs)
         
-        self.detect_bar = TaskProgressBar(self.tr('Detecting: '), True, self)
-        self.ocr_bar = TaskProgressBar(self.tr('OCR: '), True, self)
-        self.inpaint_bar = TaskProgressBar(self.tr('Inpainting: '), True, self)
+        self.detect_bar = TaskProgressBar(self.tr('文本检测：'), True, self)
+        self.ocr_bar = TaskProgressBar(self.tr('文字识别：'), True, self)
+        self.inpaint_bar = TaskProgressBar(self.tr('附加处理：'), True, self)
 
         layout = self.layout()
         layout.addWidget(self.detect_bar)
@@ -179,7 +179,7 @@ class ImgtransProgressMessageBox(ProgressMessageBox):
         layout.addWidget(self.inpaint_bar)
         
         # 添加停止按钮
-        self.stop_button = QPushButton(self.tr('Stop'), self)
+        self.stop_button = QPushButton(self.tr('停止'), self)
         self.stop_button.clicked.connect(self.on_stop_clicked)
         button_layout = QHBoxLayout()
         button_layout.addStretch()
@@ -193,7 +193,7 @@ class ImgtransProgressMessageBox(ProgressMessageBox):
         self.stop_clicked.emit()
         # 重置按钮状态（为下次使用准备）
         self.stop_button.setEnabled(False)
-        self.stop_button.setText(self.tr('trying to stop...'))
+        self.stop_button.setText(self.tr('正在停止...'))
 
 
     def updateDetectProgress(self, value: int, msg: str = ''):
@@ -211,7 +211,7 @@ class ImgtransProgressMessageBox(ProgressMessageBox):
         self.updateInpaintProgress(0)
         # 重置停止按钮状态
         self.stop_button.setEnabled(True)
-        self.stop_button.setText(self.tr('Stop'))
+        self.stop_button.setText(self.tr('停止'))
 
     def show_all_bars(self):
         self.detect_bar.show()

@@ -80,7 +80,7 @@ class LeftBar(Widget):
 
         self.globalSearchChecker = QCheckBox()
         self.globalSearchChecker.setObjectName('GlobalSearchChecker')
-        self.globalSearchChecker.setToolTip(self.tr('Global Search (Ctrl+G)'))
+        self.globalSearchChecker.setToolTip(self.tr('全局搜索 (Ctrl+G)'))
 
         self.imgTransChecker = StateChecker('imgtrans')
         self.imgTransChecker.setObjectName('ImgTransChecker')
@@ -91,24 +91,24 @@ class LeftBar(Widget):
         self.configChecker.checked.connect(self.stateCheckerChanged)
         self.configChecker.unchecked.connect(self.stateCheckerChanged)
 
-        actionOpenFolder = QAction(self.tr("Open Folder ..."), self)
+        actionOpenFolder = QAction(self.tr("打开文件夹..."), self)
         actionOpenFolder.triggered.connect(self.onOpenFolder)
         actionOpenFolder.setShortcut(QKeySequence.Open)
 
-        actionOpenProj = QAction(self.tr("Open Project ... *.json"), self)
+        actionOpenProj = QAction(self.tr("打开项目... *.json"), self)
         actionOpenProj.triggered.connect(self.onOpenProj)
 
-        actionSaveProj = QAction(self.tr("Save Project"), self)
+        actionSaveProj = QAction(self.tr("保存项目"), self)
         self.save_proj = actionSaveProj.triggered
         actionSaveProj.setShortcut(QKeySequence.StandardKey.Save)
 
-        actionExportSrcTxt = QAction(self.tr("Export source text as TXT"), self)
+        actionExportSrcTxt = QAction(self.tr("导出源文本为 TXT"), self)
         self.export_src_txt = actionExportSrcTxt.triggered
 
-        actionExportSrcMD = QAction(self.tr("Export source text as markdown"), self)
+        actionExportSrcMD = QAction(self.tr("导出源文本为 Markdown"), self)
         self.export_src_md = actionExportSrcMD.triggered
 
-        self.recentMenu = QMenu(self.tr("Open Recent"), self)
+        self.recentMenu = QMenu(self.tr("最近打开"), self)
         
         openMenu = QMenu(self)
         openMenu.addActions([actionOpenFolder, actionOpenProj])
@@ -127,8 +127,8 @@ class LeftBar(Widget):
         
         self.runImgtransBtn = RunChecker()
         self.runImgtransBtn.setObjectName('RunButton')
-        self.runImgtransBtn.setToolTip(self.tr('Extract'))
-        self.runImgtransBtn.setStatusTip(self.tr('Extract'))
+        self.runImgtransBtn.setToolTip(self.tr('提取文字'))
+        self.runImgtransBtn.setStatusTip(self.tr('提取文字'))
         self.runImgtransBtn.setFixedSize(LEFTBTN_WIDTH, LEFTBTN_WIDTH)
         self.run_imgtrans_clicked = self.runImgtransBtn.clicked
         
@@ -221,14 +221,14 @@ class LeftBar(Widget):
                     break
         
         dialog = QFileDialog()
-        folder_path = str(dialog.getExistingDirectory(self, self.tr("Select Directory"), d))
+        folder_path = str(dialog.getExistingDirectory(self, self.tr("选择文件夹"), d))
         if osp.exists(folder_path):
             self.updateRecentProjList(folder_path)
             self.open_dir.emit(folder_path)
 
     def onOpenProj(self):
         dialog = QFileDialog()
-        json_path = str(dialog.getOpenFileUrl(self.parent(), self.tr('Open Project *.json'), filter="*.json")[0].toLocalFile())
+        json_path = str(dialog.getOpenFileUrl(self.parent(), self.tr('打开项目 *.json'), filter="*.json")[0].toLocalFile())
         if osp.exists(json_path):
             self.open_json_proj.emit(json_path)
 
@@ -267,22 +267,22 @@ class TitleBar(Widget):
         self.setMouseTracking(True)
 
         self.editToolBtn = TitleBarToolBtn(self)
-        self.editToolBtn.setText(self.tr('Edit'))
+        self.editToolBtn.setText(self.tr('编辑'))
 
-        undoAction = QAction(self.tr('Undo'), self)
+        undoAction = QAction(self.tr('撤销'), self)
         self.undo_trigger = undoAction.triggered
         undoAction.setShortcut(QKeySequence.StandardKey.Undo)
-        redoAction = QAction(self.tr('Redo'), self)
+        redoAction = QAction(self.tr('重做'), self)
         self.redo_trigger = redoAction.triggered
         redoAction.setShortcut(QKeySequence.StandardKey.Redo)
-        pageSearchAction = QAction(self.tr('Search'), self)
+        pageSearchAction = QAction(self.tr('搜索'), self)
         self.page_search_trigger = pageSearchAction.triggered
         pageSearchAction.setShortcut(QKeySequence('Ctrl+F'))
-        globalSearchAction = QAction(self.tr('Global Search'), self)
+        globalSearchAction = QAction(self.tr('全局搜索'), self)
         self.global_search_trigger = globalSearchAction.triggered
         globalSearchAction.setShortcut(QKeySequence('Ctrl+G'))
 
-        replaceOCRkeyword = QAction(self.tr("Keyword substitution for source text"), self)
+        replaceOCRkeyword = QAction(self.tr("源文本关键词替换"), self)
         self.replaceOCRkeyword_trigger = replaceOCRkeyword.triggered
 
         editMenu = QMenu(self.editToolBtn)
@@ -293,9 +293,9 @@ class TitleBar(Widget):
         self.editToolBtn.setPopupMode(QToolButton.InstantPopup)
 
         self.viewToolBtn = TitleBarToolBtn(self)
-        self.viewToolBtn.setText(self.tr('View'))
+        self.viewToolBtn.setText(self.tr('视图'))
 
-        self.displayLanguageMenu = QMenu(self.tr("Display Language"), self)
+        self.displayLanguageMenu = QMenu(self.tr("界面语言"), self)
         self.lang_ac_group = lang_ac_group = QActionGroup(self)
         lang_ac_group.setExclusive(True)
         lang_actions = []
@@ -309,9 +309,9 @@ class TitleBar(Widget):
             lang_actions.append(la)
         self.displayLanguageMenu.addActions(lang_actions)
 
-        texteditAction = QAction(self.tr('Text Editor'), self)
+        texteditAction = QAction(self.tr('文字编辑'), self)
         texteditAction.setShortcut(QKeySequence('T'))
-        self.darkModeAction = darkModeAction = QAction(self.tr('Dark Mode'), self)
+        self.darkModeAction = darkModeAction = QAction(self.tr('深色模式'), self)
         darkModeAction.setCheckable(True)
 
         self.viewMenu = viewMenu = QMenu(self.viewToolBtn)
@@ -325,10 +325,10 @@ class TitleBar(Widget):
         self.darkmode_trigger = darkModeAction.triggered
 
         self.goToolBtn = TitleBarToolBtn(self)
-        self.goToolBtn.setText(self.tr('Go'))
-        prevPageAction = QAction(self.tr('Previous Page'), self)
+        self.goToolBtn.setText(self.tr('跳转'))
+        prevPageAction = QAction(self.tr('上一页'), self)
         # prevPageAction.setShortcuts([QKeySequence.StandardKey.MoveToPreviousPage, QKeySequence('A')])
-        nextPageAction = QAction(self.tr('Next Page'), self)
+        nextPageAction = QAction(self.tr('下一页'), self)
         # nextPageAction.setShortcuts([QKeySequence.StandardKey.MoveToNextPage, QKeySequence('D')])
         goMenu = QMenu(self.goToolBtn)
         goMenu.addActions([prevPageAction, nextPageAction])
@@ -339,7 +339,7 @@ class TitleBar(Widget):
 
         # 工具菜单
         self.toolsToolBtn = TitleBarToolBtn(self)
-        self.toolsToolBtn.setText(self.tr('Tools'))
+        self.toolsToolBtn.setText(self.tr('工具'))
         
         # 区域合并工具
         mergeToolAction = QAction('区域合并工具', self)
@@ -352,19 +352,18 @@ class TitleBar(Widget):
         self.toolsToolBtn.setPopupMode(QToolButton.InstantPopup)
 
         self.runToolBtn = TitleBarToolBtn(self)
-        self.runToolBtn.setText(self.tr('Extract'))
+        self.runToolBtn.setText(self.tr('提取'))
 
         self.stageActions = stageActions = [
-            QAction(self.tr('Enable Text Dection'), self),
-            QAction(self.tr('Enable OCR'), self),
-            QAction(self.tr('Enable Inpainting'), self)
+            QAction(self.tr('启用文本检测'), self),
+            QAction(self.tr('启用文字识别'), self)
         ]
         for idx, sa in enumerate(stageActions):
             sa.setCheckable(True)
             sa.setChecked(pcfg.module.stage_enabled(idx))
             sa.triggered.connect(self.stageEnableStateChanged)
 
-        runAction = QAction(self.tr('Extract'), self)
+        runAction = QAction(self.tr('提取文字'), self)
         runMenu = QMenu(self.runToolBtn)
         runMenu.addActions(stageActions[:2])
         runMenu.addSeparator()
@@ -554,7 +553,6 @@ class SelectionWithConfigWidget(Widget):
 class BottomBar(Widget):
     
     textedit_checkchanged = Signal()
-    paintmode_checkchanged = Signal()
     textblock_checkchanged = Signal()
 
     def __init__(self, mainwindow: QMainWindow, *args, **kwargs) -> None:
@@ -563,28 +561,23 @@ class BottomBar(Widget):
         self.setMouseTracking(True)
         self.mainwindow = mainwindow
         
-        self.textdet_selector = SelectionWithConfigWidget(self.tr('Text Detector'))
-        self.ocr_selector = SelectionWithConfigWidget(self.tr('OCR'))
-        self.inpaint_selector = SelectionWithConfigWidget(self.tr('Inpaint'))
+        self.textdet_selector = SelectionWithConfigWidget(self.tr('文本检测'))
+        self.ocr_selector = SelectionWithConfigWidget(self.tr('文字识别'))
 
         self.hlayout = QHBoxLayout(self)
-        self.paintChecker = QCheckBox()
-        self.paintChecker.setObjectName('PaintChecker')
-        self.paintChecker.setToolTip(self.tr('Enable/disable paint mode'))
-        self.paintChecker.clicked.connect(self.onPaintCheckerPressed)
         self.texteditChecker = QCheckBox()
         self.texteditChecker.setObjectName('TexteditChecker')
-        self.texteditChecker.setToolTip(self.tr('Enable/disable text edit mode'))
+        self.texteditChecker.setToolTip(self.tr('启用或关闭文字编辑模式'))
         self.texteditChecker.clicked.connect(self.onTextEditCheckerPressed)
         self.textblockChecker = QCheckBox()
         self.textblockChecker.setObjectName('TextblockChecker')
         self.textblockChecker.clicked.connect(self.onTextblockCheckerClicked)
         
-        self.originalSlider = PaintQSlider(self.tr("Original image opacity"), Qt.Orientation.Horizontal, self)
+        self.originalSlider = PaintQSlider(self.tr("原图透明度"), Qt.Orientation.Horizontal, self)
         self.originalSlider.setFixedWidth(150)
         self.originalSlider.setRange(0, 100)
 
-        self.textlayerSlider = PaintQSlider(self.tr("Text layer opacity"), Qt.Orientation.Horizontal, self)
+        self.textlayerSlider = PaintQSlider(self.tr("文字层透明度"), Qt.Orientation.Horizontal, self)
         self.textlayerSlider.setFixedWidth(150)
         self.textlayerSlider.setValue(100)
         self.textlayerSlider.setRange(0, 100)
@@ -592,34 +585,18 @@ class BottomBar(Widget):
         
         self.hlayout.addWidget(self.textdet_selector)
         self.hlayout.addWidget(self.ocr_selector)
-        self.hlayout.addWidget(self.inpaint_selector)
         # self.hlayout.addWidget(self.translatorStatusbtn)
         # self.hlayout.addWidget(self.transTranspageBtn)
         # self.hlayout.addWidget(self.inpainterStatBtn)
         self.hlayout.addSpacerItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Minimum))
         self.hlayout.addWidget(self.textlayerSlider)
         self.hlayout.addWidget(self.originalSlider)
-        self.hlayout.addWidget(self.paintChecker)
         self.hlayout.addWidget(self.texteditChecker)
         self.hlayout.addWidget(self.textblockChecker)
         self.hlayout.setContentsMargins(60, 0, 10, WINDOW_BORDER_WIDTH)
 
-        if C.EXTRACT_ONLY:
-            self.inpaint_selector.hide()
-            self.paintChecker.hide()
-
-
-    def onPaintCheckerPressed(self):
-        checked = self.paintChecker.isChecked()
-        if checked:
-            self.texteditChecker.setChecked(False)
-        pcfg.imgtrans_paintmode = checked
-        self.paintmode_checkchanged.emit()
-
     def onTextEditCheckerPressed(self):
         checked = self.texteditChecker.isChecked()
-        if checked:
-            self.paintChecker.setChecked(False)
         pcfg.imgtrans_textedit = checked
         self.textedit_checkchanged.emit()
 
