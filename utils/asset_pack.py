@@ -78,6 +78,14 @@ PACK_SPECS = {
                 ("data/models/mit32px_ocr.ckpt",),
             ),
             PackEntry(
+                "data/models/mit48pxctc_ocr.ckpt",
+                ("data/models/mit48pxctc_ocr.ckpt",),
+            ),
+            PackEntry(
+                "data/alphabet-all-v5.txt",
+                ("data/alphabet-all-v5.txt",),
+            ),
+            PackEntry(
                 "data/models/manga-ocr-base",
                 ("data/models/manga-ocr-base",),
                 is_dir=True,
@@ -95,6 +103,7 @@ MODULE_PACK_MAP = {
     "ctd": ("core-models",),
     "mit48px": ("core-models",),
     "mit32px": ("advanced-ocr",),
+    "mit48px_ctc": ("advanced-ocr",),
     "manga_ocr": ("advanced-ocr",),
     "PaddleOCRVLManga": ("advanced-ocr",),
 }
