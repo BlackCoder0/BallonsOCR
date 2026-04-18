@@ -6,7 +6,40 @@ from . import TEXTDETECTORS, OCR
 from .base import BaseModule, LOGGER
 import utils.shared as shared
 from utils.config import pcfg
+from utils.asset_pack import ensure_pack_extracted, module_pack_names, pack_ready, required_paths_exist
 from utils.download_util import download_and_check_files
+
+
+def _resolve_module_name(module_class: type[BaseModule]) -> str | None:
+    for registry in (TEXTDETECTORS, OCR):
+        for module_name, registered_class in registry.module_dict.items():
+            if registered_class == module_class:
+                return module_name
+    return None
+
+
+def _prepare_module_asset_packs(module_name: str) -> bool:
+    pack_names = module_pack_names(module_name)
+    if len(pack_names) == 0:
+        return False
+
+    extracted_any = False
+    for pack_name in pack_names:
+        if required_paths_exist(pack_name):
+            continue
+        if not pack_ready(pack_name):
+            continue
+        try:
+            extracted = ensure_pack_extracted(pack_name)
+        except Exception as exc:
+            LOGGER.warning(
+                f'Failed preparing asset pack {pack_name} for module {module_name}: {exc}'
+            )
+            continue
+        if extracted:
+            LOGGER.info(f'Extracted asset pack {pack_name} for module {module_name}.')
+            extracted_any = True
+    return extracted_any
 
 
 def download_and_check_module_files(module_class_list: List[BaseModule] = None):
@@ -14,6 +47,9 @@ def download_and_check_module_files(module_class_list: List[BaseModule] = None):
         module_class_list = get_required_module_classes()
 
     for module_class in module_class_list:
+        module_name = _resolve_module_name(module_class)
+        if module_name:
+            _prepare_module_asset_packs(module_name)
         if module_class.download_file_on_load or module_class.download_file_list is None:
             continue
         for download_kwargs in module_class.download_file_list:
