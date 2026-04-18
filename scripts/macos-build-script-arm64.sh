@@ -60,7 +60,7 @@ check_file_hash() {
         'comictextdetector.pt.onnx|data/models|1a86ace74961413cbd650002e7bb4dcec4980ffa21b2f19b86933372071d718f'
         'config.json|data/models/manga-ocr-base|8c0e395de8fa699daaac21aee33a4ba9bd1309cfbff03147813d2a025f39f349'
         'preprocessor_config.json|data/models/manga-ocr-base|af4eb4d79cf61b47010fc0bc9352ee967579c417423b4917188d809b7e048948'
-        'pytorch_model.bin|data/models/manga-ocr-base|c63e0bb5b3ff798c5991de18a8e0956c7ee6d1563aca6729029815eda6f5c2eb'
+        'pytorch_model.bin|data/models/manga-ocr-base|6d94edee664435ab3f5f9b38ce901d4bf7767d02ea27b5862566086ff4a455d2'
         'README.md|data/models/manga-ocr-base|32f413afcc4295151e77d25202c5c5d81ef621b46f947da1c3bde13256dc0d5f'
         'special_tokens_map.json|data/models/manga-ocr-base|303df45a03609e4ead04bc3dc1536d0ab19b5358db685b6f3da123d05ec200e3'
         'tokenizer_config.json|data/models/manga-ocr-base|d775ad1deac162dc56b84e9b8638f95ed8a1f263d0f56f4f40834e26e205e266'

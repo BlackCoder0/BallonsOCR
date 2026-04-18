@@ -51,7 +51,7 @@ class MangaOCR(OCRBase):
     download_file_list = [{
         'url': 'https://huggingface.co/kha-white/manga-ocr-base/resolve/main/',
         'files': ['pytorch_model.bin', 'config.json', 'preprocessor_config.json', 'README.md', 'special_tokens_map.json', 'tokenizer_config.json', 'vocab.txt'],
-        'sha256_pre_calculated': ['c63e0bb5b3ff798c5991de18a8e0956c7ee6d1563aca6729029815eda6f5c2eb', None, None, None, None, None, None],
+        'sha256_pre_calculated': ['6d94edee664435ab3f5f9b38ce901d4bf7767d02ea27b5862566086ff4a455d2', None, None, None, None, None, None],
         'save_dir': 'data/models/manga-ocr-base',
         'concatenate_url_filename': 1,
     }]
