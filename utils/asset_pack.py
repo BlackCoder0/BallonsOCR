@@ -186,6 +186,38 @@ def required_paths_exist(pack_name: str, root: Path | str | None = None) -> bool
     return True
 
 
+def pack_archive_is_complete(pack_name: str, root: Path | str | None = None) -> bool:
+    archive_path = locate_pack_path(pack_name, root)
+    if archive_path is None:
+        return False
+
+    spec = get_pack_spec(pack_name)
+    try:
+        with zipfile.ZipFile(archive_path, "r") as archive:
+            archive_names = {
+                Path(name).as_posix().rstrip("/")
+                for name in archive.namelist()
+                if name and not name.endswith("/")
+            }
+    except zipfile.BadZipFile:
+        return False
+
+    for entry in spec.entries:
+        target_path = Path(entry.target_relpath).as_posix().rstrip("/")
+        if entry.is_dir:
+            prefix = f"{target_path}/"
+            if not any(name.startswith(prefix) for name in archive_names):
+                return False
+            continue
+        if target_path not in archive_names:
+            return False
+    return True
+
+
+def pack_ready(pack_name: str, root: Path | str | None = None) -> bool:
+    return required_paths_exist(pack_name, root) or pack_archive_is_complete(pack_name, root)
+
+
 def missing_packs_for_module(module_name: str, root: Path | str | None = None) -> list[str]:
     missing = []
     for pack_name in module_pack_names(module_name):
@@ -210,6 +242,11 @@ def ensure_pack_extracted(pack_name: str, root: Path | str | None = None) -> boo
 
     with zipfile.ZipFile(archive_path, "r") as archive:
         archive.extractall(base_root)
+
+    if not required_paths_exist(pack_name, base_root):
+        raise FileNotFoundError(
+            f"Asset pack archive for {pack_name} is incomplete: {archive_path}"
+        )
     return True
 
 
@@ -225,6 +262,8 @@ def _resolve_entry_source(entry: PackEntry, roots: list[Path]) -> Path | None:
 def iter_pack_file_records(
     pack_name: str,
     root_paths: Iterable[Path | str] | Path | str | None,
+    *,
+    allow_missing: bool = False,
 ) -> list[tuple[Path, Path]]:
     roots = normalize_roots(root_paths)
     spec = get_pack_spec(pack_name)
@@ -247,7 +286,7 @@ def iter_pack_file_records(
 
         records.append((source_path, Path(entry.target_relpath)))
 
-    if missing_targets:
+    if missing_targets and not allow_missing:
         detail = "\n".join(f"- {target}" for target in missing_targets)
         raise FileNotFoundError(
             f"Missing source files for asset pack {pack_name}:\n{detail}"
@@ -259,6 +298,8 @@ def iter_pack_file_records(
 def compute_pack_signature(
     pack_name: str,
     root_paths: Iterable[Path | str] | Path | str | None,
+    *,
+    allow_missing: bool = False,
 ) -> str:
     digest = hashlib.sha256()
     payload = {
@@ -266,7 +307,11 @@ def compute_pack_signature(
         "records": [],
     }
 
-    for source_path, archive_relpath in iter_pack_file_records(pack_name, root_paths):
+    for source_path, archive_relpath in iter_pack_file_records(
+        pack_name,
+        root_paths,
+        allow_missing=allow_missing,
+    ):
         stat = source_path.stat()
         payload["records"].append(
             {

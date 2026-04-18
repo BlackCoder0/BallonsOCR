@@ -6,7 +6,7 @@ from .base import DEFAULT_DEVICE, GPUINTENSIVE_SET, LOGGER, merge_config_module_
     init_module_registries, init_textdetector_registries, init_inpainter_registries, init_ocr_registries
 from pathlib import Path
 
-from utils.asset_pack import module_pack_names, pack_exists
+from utils.asset_pack import module_pack_names, pack_ready
 
 INPAINTERS = Registry('inpainters')
 
@@ -97,7 +97,7 @@ def _module_is_available(registry: Registry, module_name: str) -> bool:
 
     pack_names = module_pack_names(module_name)
     if len(pack_names) > 0:
-        return all(pack_exists(pack_name) for pack_name in pack_names)
+        return all(pack_ready(pack_name) for pack_name in pack_names)
 
     download_specs = getattr(module_class, 'download_file_list', None) or []
     if len(download_specs) > 0:

@@ -8,7 +8,7 @@ import subprocess
 from platform import platform
 
 BRANCH = 'dev'
-VERSION = '1.0.0'
+VERSION = '1.0.1'
 
 python = sys.executable
 git = os.environ.get('GIT', "git")
@@ -137,7 +137,6 @@ def apply_extract_mode_defaults():
     preferred_ocr_order = [
         'smart_ocr',
         'mit48px',
-        'mit48px_ctc',
         'manga_ocr',
         'paddle_ocr',
         'PaddleOCRVLManga',
@@ -155,12 +154,12 @@ def apply_extract_mode_defaults():
         if params is None:
             continue
         if module_name == 'smart_ocr':
-            vertical_ocr = next((name for name in ['mit48px', 'mit48px_ctc', 'manga_ocr'] if name in available_ocr), None)
+            vertical_ocr = next((name for name in ['mit48px', 'manga_ocr'] if name in available_ocr), None)
             horizontal_ocr = next((name for name in ['windows_ocr', 'one_ocr', 'paddle_ocr', 'mit48px'] if name in available_ocr), None)
             fallback_candidates = []
             if vertical_ocr is not None and vertical_ocr != horizontal_ocr:
                 fallback_candidates.append(vertical_ocr)
-            fallback_candidates.extend(['mit48px_ctc', 'mit48px', 'one_ocr', 'paddle_ocr', 'windows_ocr', 'none_ocr'])
+            fallback_candidates.extend(['mit48px', 'manga_ocr', 'one_ocr', 'paddle_ocr', 'windows_ocr', 'none_ocr'])
             fallback_ocr = next((name for name in fallback_candidates if name in available_ocr and name != horizontal_ocr), None)
 
             if vertical_ocr is not None:
