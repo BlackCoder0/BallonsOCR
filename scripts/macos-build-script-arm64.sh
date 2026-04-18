@@ -66,7 +66,6 @@ check_file_hash() {
         'tokenizer_config.json|data/models/manga-ocr-base|d775ad1deac162dc56b84e9b8638f95ed8a1f263d0f56f4f40834e26e205e266'
         'vocab.txt|data/models/manga-ocr-base|344fbb6b8bf18c57839e924e2c9365434697e0227fac00b88bb4899b78aa594d'
         'mit32px_ocr.ckpt|data/models|d9f619a9dccce8ce88357d1b17d25f07806f225c033ea42c64e86c45446cfe71'
-        'mit48pxctc_ocr.ckpt|data/models|8b0837a24da5fde96c23ca47bb7abd590cd5b185c307e348c6e0b7238178ed89'
         'ocr_ar_48px.ckpt|data/models|29daa46d080818bb4ab239a518a88338cbccff8f901bef8c9db191a7cb97671d'
         'features.pkl|data/models/pkuseg/postag|17d734c186a0f6e76d15f4990e766a00eed5f72bea099575df23677435ee749d'
         'weights.npz|data/models/pkuseg/postag|2bbd53b366be82a1becedb4d29f76296b36ad7560b6a8c85d54054900336d59a'

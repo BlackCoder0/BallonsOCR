@@ -60,24 +60,6 @@ class OCRMIT32px(MITModels):
         self.model = OCR32pxModel(r'data/models/mit32px_ocr.ckpt', self.device)
 
 
-from .mit48px_ctc import OCR48pxCTC
-@register_OCR('mit48px_ctc')
-class OCRMIT48pxCTC(MITModels):
-
-    params = deepcopy(mit_params)
-    download_file_list = [{
-        'url': 'https://github.com/zyddnys/manga-image-translator/releases/download/beta-0.3/ocr-ctc.zip',
-        'files': ['ocr-ctc.ckpt', 'alphabet-all-v5.txt'],
-        'sha256_pre_calculated': ['8b0837a24da5fde96c23ca47bb7abd590cd5b185c307e348c6e0b7238178ed89', None],
-        'save_files': ['data/models/mit48pxctc_ocr.ckpt', 'data/alphabet-all-v5.txt'],
-        'archived_files': 'ocr-ctc.zip',
-        'archive_sha256_pre_calculated': 'fc61c52f7a811bc72c54f6be85df814c6b60f63585175db27cb94a08e0c30101',
-    }]
-
-    def _load_model(self):
-        self.model = OCR48pxCTC(r'data/models/mit48pxctc_ocr.ckpt', self.device)
-
-
 from .mit48px import Model48pxOCR
 OCR48PXMODEL_PATH = r'data/models/ocr_ar_48px.ckpt'
 @register_OCR('mit48px')

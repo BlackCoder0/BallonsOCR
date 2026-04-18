@@ -14,7 +14,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .mit48px_ctc import AvgMeter, chunks, TextBlock
+from .base import TextBlock
+from .mit_ocr_common import AvgMeter, chunks
 
 
 def fixed_pos_embedding(x):

@@ -10,7 +10,6 @@ from utils.config import pcfg
 
 SMART_OCR_OPTIONS = [
     'mit48px',
-    'mit48px_ctc',
     'manga_ocr',
     'windows_ocr',
     'one_ocr',

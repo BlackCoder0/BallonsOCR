@@ -28,9 +28,6 @@ wget -c "https://github.com/zyddnys/manga-image-translator/releases/download/bet
 # Sugoi Translator
 wget -c "https://github.com/zyddnys/manga-image-translator/releases/download/beta-0.3/sugoi-models.zip" ; unzip -d sugoi_translator sugoi-models.zip
 
-# MIT_48PX_CTC OCR
-wget -c "https://github.com/zyddnys/manga-image-translator/releases/download/beta-0.3/ocr-ctc.zip"; unzip ocr-ctc.zip; mv ocr-ctc.ckpt mit48pxctc_ocr.ckpt; rm alphabet-all-v5.txt
-
 # Manga OCR
 git lfs install; git clone "https://huggingface.co/kha-white/manga-ocr-base"
 
